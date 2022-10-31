@@ -1,0 +1,15 @@
+Finish ez_diesel with builder
+
+Lib Ipad
+    available space
+    is mounted ?
+    mount
+
+Lib NAS
+    is mounted ?
+    mount
+    rename folder /file and move to ok
+    create zip and copy to ipad
+
+lib api
+    get metadata from folder name

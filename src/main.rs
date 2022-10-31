@@ -1,3 +1,6 @@
-fn main() {
-    println!("Hello, world!");
+use comics;
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    comics::run()?;
+    Ok(())
 }
