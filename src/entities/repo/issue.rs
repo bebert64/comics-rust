@@ -1,5 +1,5 @@
 use super::{establish_connection, schema::issues, super::Issue};
-use crate::{Result};
+use crate::{Result, ComicsError};
 use diesel::prelude::*;
 
 pub fn fetch_by_id(id: i32) -> Result<Option<Issue>> {
@@ -10,31 +10,35 @@ pub fn fetch_by_id(id: i32) -> Result<Option<Issue>> {
         .optional()?)
 }
 
-pub fn save(issue: &Issue) -> Result<()> {
-    match fetch_by_id(issue.id)? {
+pub fn save(issue: Issue) -> Result<Issue> {
+    match issue.id {
         Some(_) => update(issue),
         None => insert(issue),
     }
 }
 
-fn insert(issue: &Issue) -> Result<()> {
+fn insert(mut issue: Issue) -> Result<Issue> {
     let mut connection = establish_connection()?;
-    diesel::insert_into(issues::table)
-        .values(issue)
-        .execute(&mut connection)?;
-    Ok(())
+    let id = diesel::insert_into(issues::table)
+        .values(&issue)
+        .returning(issues::id)
+        .get_result(&mut connection)?;
+    issue.id = Some(id);
+    Ok(issue)
 }
 
-fn update(issue: &Issue) -> Result<()> {
+fn update(issue: Issue) -> Result<Issue> {
     let mut connection = establish_connection()?;
-    diesel::update(issue)
-        .set(issue)
+    let id = issue.id.unwrap();
+    diesel::update(issues::table.find(id))
+        .set(&issue)
         .execute(&mut connection)?;
-    Ok(())
+    Ok(issue)
 }
 
 pub fn delete(issue: &Issue) -> Result<()> {
+    let id = issue.id.ok_or(ComicsError::NoIdError)?;
     let mut connection = establish_connection()?;
-    diesel::delete(issue).execute(&mut connection)?;
+    diesel::delete(issues::table.find(id)).execute(&mut connection)?;
     Ok(())
 }

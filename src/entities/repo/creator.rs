@@ -1,5 +1,5 @@
 use super::{establish_connection, schema::creators, super::Creator};
-use crate::{Result};
+use crate::{Result, ComicsError};
 use diesel::prelude::*;
 
 pub fn fetch_by_id(id: i32) -> Result<Option<Creator>> {
@@ -10,31 +10,35 @@ pub fn fetch_by_id(id: i32) -> Result<Option<Creator>> {
         .optional()?)
 }
 
-pub fn save(creator: &Creator) -> Result<()> {
-    match fetch_by_id(creator.id)? {
+pub fn save(creator: Creator) -> Result<Creator> {
+    match creator.id {
         Some(_) => update(creator),
         None => insert(creator),
     }
 }
 
-fn insert(creator: &Creator) -> Result<()> {
+fn insert(mut creator: Creator) -> Result<Creator> {
     let mut connection = establish_connection()?;
-    diesel::insert_into(creators::table)
-        .values(creator)
-        .execute(&mut connection)?;
-    Ok(())
+    let id = diesel::insert_into(creators::table)
+        .values(&creator)
+        .returning(creators::id)
+        .get_result(&mut connection)?;
+    creator.id = Some(id);
+    Ok(creator)
 }
 
-fn update(creator: &Creator) -> Result<()> {
+fn update(creator: Creator) -> Result<Creator> {
+    let id = creator.id.unwrap();
     let mut connection = establish_connection()?;
-    diesel::update(creator)
-        .set(creator)
+    diesel::update(creators::table.find(id))
+        .set(&creator)
         .execute(&mut connection)?;
-    Ok(())
+    Ok(creator)
 }
 
 pub fn delete(creator: &Creator) -> Result<()> {
+    let id = creator.id.ok_or(ComicsError::NoIdError)?;
     let mut connection = establish_connection()?;
-    diesel::delete(creator).execute(&mut connection)?;
+    diesel::delete(creators::table.find(id)).execute(&mut connection)?;
     Ok(())
 }

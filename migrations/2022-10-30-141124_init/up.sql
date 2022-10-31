@@ -45,12 +45,14 @@ CREATE TABLE publishers (
     id INTEGER NOT NULL PRIMARY KEY,
     name VARCHAR (255) NOT NULL,
     thumbnail BLOB,
-    comic_vine_id INTEGER
+    comic_vine_id INTEGER,
+    UNIQUE (name)
 );
 
 CREATE TABLE creators (
     id INTEGER NOT NULL PRIMARY KEY,
     name VARCHAR (255) NOT NULL,
     thumbnail BLOB,
-    comic_vine_id INTEGER
+    comic_vine_id INTEGER,
+    UNIQUE (name)
 );

@@ -12,6 +12,8 @@ pub enum ComicsError {
     SavingDefaultError,
     #[error("Trying to retrieve via a missing foreign key")]
     ForeignKeyError,
+    #[error("Trying to update or delete a struct without id")]
+    NoIdError,
 }
 
 pub type Result<T> = std::result::Result<T, ComicsError>;
