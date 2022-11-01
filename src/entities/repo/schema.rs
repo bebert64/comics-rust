@@ -20,8 +20,8 @@ diesel::table! {
 }
 
 diesel::table! {
-    creators (comic_vine_id) {
-        comic_vine_id -> Integer,
+    creators (id) {
+        id -> Integer,
         name -> Text,
         thumbnail -> Nullable<Binary>,
     }
@@ -71,11 +71,5 @@ diesel::table! {
 }
 
 diesel::allow_tables_to_appear_in_same_query!(
-    books,
-    comics,
-    creators,
-    issues,
-    publishers,
-    story_arcs,
-    volumes,
+    books, comics, creators, issues, publishers, story_arcs, volumes,
 );

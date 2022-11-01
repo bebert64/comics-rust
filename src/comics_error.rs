@@ -14,6 +14,8 @@ pub enum ComicsError {
     ForeignKeyError,
     #[error("Trying to update or delete a struct without id")]
     NoIdError,
+    #[error("Http connection error")]
+    HttpConnectionError(#[from] reqwest::Error),
 }
 
 pub type Result<T> = std::result::Result<T, ComicsError>;

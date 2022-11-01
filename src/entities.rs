@@ -3,7 +3,8 @@ mod repo;
 use crate::{ComicsError, Result};
 use chrono::NaiveDate;
 use diesel::prelude::*;
-use repo::schema::{creators, issues, books, volumes};
+use repo::schema::{books, creators, issues, volumes};
+use serde::Deserialize;
 
 // pub struct Comic {
 //     id: i32,
@@ -37,7 +38,7 @@ pub struct Book {
     pub title: String,
     pub thumbnail: Option<Vec<u8>>,
     pub is_tpb: bool,
-} 
+}
 
 #[derive(Debug, Default, Queryable, Insertable, Identifiable, AsChangeset)]
 pub struct Issue {
@@ -70,7 +71,7 @@ impl Issue {
     }
 
     pub fn with_author(&mut self, creator: &Creator) -> Result<&mut Self> {
-        self.author_id = Some(creator.comic_vine_id);
+        self.author_id = Some(creator.id);
         Ok(self)
     }
 
@@ -82,7 +83,7 @@ impl Issue {
     }
 
     pub fn with_artist(&mut self, creator: &Creator) -> Result<&mut Self> {
-        self.artist_id = Some(creator.comic_vine_id);
+        self.artist_id = Some(creator.id);
         Ok(self)
     }
 
@@ -109,10 +110,9 @@ impl Issue {
 //     comic_vine_id: Option<i32>,
 // }
 
-#[derive(Debug, Default, Queryable, Insertable, Identifiable, AsChangeset)]
-#[diesel(primary_key(comic_vine_id))]
+#[derive(Debug, Deserialize, Default, Queryable, Insertable, Identifiable, AsChangeset)]
 pub struct Creator {
-    pub comic_vine_id: i32,
+    pub id: i32,
     pub name: String,
     pub thumbnail: Option<Vec<u8>>,
 }
@@ -127,7 +127,7 @@ impl Creator {
         self
     }
 
-    pub fn save(&mut self) -> Result<()> {
+    pub fn save(&self) -> Result<()> {
         repo::creator::save(self)
     }
 

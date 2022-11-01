@@ -50,7 +50,7 @@ CREATE TABLE publishers (
 );
 
 CREATE TABLE creators (
-    comic_vine_id INTEGER NOT NULL PRIMARY KEY,
+    id INTEGER NOT NULL PRIMARY KEY,
     name VARCHAR (255) NOT NULL,
     thumbnail BLOB
 );

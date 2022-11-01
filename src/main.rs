@@ -1,7 +1,8 @@
-use comics;
 use anyhow::Result;
+use comics;
 
-fn main() -> Result<()> {
-    comics::run()?;
+#[tokio::main]
+async fn main() -> Result<()> {
+    comics::run().await?;
     Ok(())
 }

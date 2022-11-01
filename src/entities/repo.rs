@@ -1,5 +1,5 @@
-pub mod issue;
 pub mod creator;
+pub mod issue;
 pub mod schema;
 
 use crate::Result;

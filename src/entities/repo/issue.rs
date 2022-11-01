@@ -1,5 +1,5 @@
-use super::{establish_connection, schema::issues, super::Issue};
-use crate::{Result, ComicsError};
+use super::{super::Issue, establish_connection, schema::issues};
+use crate::{ComicsError, Result};
 use diesel::prelude::*;
 
 pub fn fetch_by_id(id: i32) -> Result<Option<Issue>> {
