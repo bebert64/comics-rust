@@ -13,10 +13,10 @@ pub async fn run() -> Result<()> {
     // let issue = issue.save()?;
     // println!("{:?}", issue);
 
-    // let creator = api::fetch_creator_from_comic_vine_with_thumbnail(40382).await?;
-    // creator.save()?;
+    let creator = Creator::fetch_from_comic_vine_with_thumbnail(40382).await?;
+    creator.save()?;
     let creator = Creator::fetch_by_id(40382)?.unwrap();
-    println!("{creator:?}");
+    println!("{:?}", creator.name);
 
     // issue.delete()?;
     // let issue = Issue::fetch_by_id(1)?;

@@ -1,17 +1,7 @@
-CREATE TABLE comics (
-    id INTEGER NOT NULL PRIMARY KEY,
-	title VARCHAR (255) NOT NULL,
-	thumbnail BLOB,
-	publisher_id INTEGER,
-    comic_vine_id INTEGER
-);
-
 CREATE TABLE volumes (
     id INTEGER NOT NULL PRIMARY KEY,
 	number INTEGER NOT NULL,
-	thumbnail BLOB,
-    comic_id INTEGER NOT NULL,
-    comic_vine_id INTEGER
+	thumbnail BLOB
 );
 
 CREATE TABLE story_arcs (

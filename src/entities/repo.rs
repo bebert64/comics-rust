@@ -1,7 +1,3 @@
-pub mod creator;
-pub mod issue;
-pub mod schema;
-
 use crate::Result;
 use diesel::sqlite::SqliteConnection;
 use diesel::{prelude::*, sql_types::Text};
