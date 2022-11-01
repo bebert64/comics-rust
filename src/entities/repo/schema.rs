@@ -20,11 +20,10 @@ diesel::table! {
 }
 
 diesel::table! {
-    creators (id) {
-        id -> Integer,
+    creators (comic_vine_id) {
+        comic_vine_id -> Integer,
         name -> Text,
         thumbnail -> Nullable<Binary>,
-        comic_vine_id -> Nullable<Integer>,
     }
 }
 

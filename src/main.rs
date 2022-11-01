@@ -1,6 +1,7 @@
 use comics;
+use anyhow::Result;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
     comics::run()?;
     Ok(())
 }

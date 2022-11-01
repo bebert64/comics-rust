@@ -70,7 +70,7 @@ impl Issue {
     }
 
     pub fn with_author(&mut self, creator: &Creator) -> Result<&mut Self> {
-        self.author_id = Some(creator.id.ok_or(ComicsError::NoIdError)?);
+        self.author_id = Some(creator.comic_vine_id);
         Ok(self)
     }
 
@@ -82,7 +82,7 @@ impl Issue {
     }
 
     pub fn with_artist(&mut self, creator: &Creator) -> Result<&mut Self> {
-        self.artist_id = Some(creator.id.ok_or(ComicsError::NoIdError)?);
+        self.artist_id = Some(creator.comic_vine_id);
         Ok(self)
     }
 
@@ -110,12 +110,11 @@ impl Issue {
 // }
 
 #[derive(Debug, Default, Queryable, Insertable, Identifiable, AsChangeset)]
+#[diesel(primary_key(comic_vine_id))]
 pub struct Creator {
-    #[diesel(deserialize_as = i32)]
-    id: Option<i32>,
+    pub comic_vine_id: i32,
     pub name: String,
     pub thumbnail: Option<Vec<u8>>,
-    pub comic_vine_id: Option<i32>,
 }
 
 impl Creator {
@@ -128,7 +127,7 @@ impl Creator {
         self
     }
 
-    pub fn save(self) -> Result<Creator> {
+    pub fn save(&mut self) -> Result<()> {
         repo::creator::save(self)
     }
 

@@ -13,10 +13,10 @@ pub fn run() -> Result<()> {
     println!("{:?}", issue);
 
     let mut creator = Creator::default();
-    let creator = creator.save();
-    // creator.with_id(1).save()?;
+    creator.name = "creator".to_string();
+    creator.save()?;
     // let creator = Creator::fetch_by_id(1)?.unwrap();
-    // println!("{:?}", creator);
+    println!("{:?}", creator);
 
     // issue.with_author(&creator).save()?;
     // let issue = Issue::fetch_by_id(1)?.unwrap();
