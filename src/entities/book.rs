@@ -29,7 +29,7 @@ impl Book {
         self
     }
 
-    pub fn save(self) -> Result<Book> {
+    pub fn save(&mut self) -> Result<()> {
         repo_book::save(self)
     }
 
@@ -64,30 +64,30 @@ mod repo_book {
             .optional()?)
     }
 
-    pub fn save(book: Book) -> Result<Book> {
+    pub fn save(book: &mut Book) -> Result<()> {
         match book.id {
             Some(_) => update(book),
             None => insert(book),
         }
     }
 
-    fn insert(mut book: Book) -> Result<Book> {
+    fn insert(book: &mut Book) -> Result<()> {
         let mut connection = establish_connection()?;
         let id = diesel::insert_into(books::table)
-            .values(&book)
+            .values(&*book)
             .returning(books::id)
             .get_result(&mut connection)?;
         book.id = Some(id);
-        Ok(book)
+        Ok(())
     }
 
-    fn update(book: Book) -> Result<Book> {
+    fn update(book: &mut Book) -> Result<()> {
         let mut connection = establish_connection()?;
         let id = book.id.unwrap();
         diesel::update(books::table.find(id))
-            .set(&book)
+            .set(&*book)
             .execute(&mut connection)?;
-        Ok(book)
+        Ok(())
     }
 
     pub fn delete(book: &Book) -> Result<()> {

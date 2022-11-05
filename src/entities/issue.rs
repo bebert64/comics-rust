@@ -62,7 +62,7 @@ impl Issue {
         })
     }
 
-    pub fn save(self) -> Result<Issue> {
+    pub fn save(&mut self) -> Result<()> {
         repo_issue::save(self)
     }
 
@@ -92,30 +92,30 @@ mod repo_issue {
             .optional()?)
     }
 
-    pub fn save(issue: Issue) -> Result<Issue> {
+    pub fn save(issue: &mut Issue) -> Result<()> {
         match issue.id {
             Some(_) => update(issue),
             None => insert(issue),
         }
     }
 
-    fn insert(mut issue: Issue) -> Result<Issue> {
+    fn insert(issue: &mut Issue) -> Result<()> {
         let mut connection = establish_connection()?;
         let id = diesel::insert_into(issues::table)
-            .values(&issue)
+            .values(&*issue)
             .returning(issues::id)
             .get_result(&mut connection)?;
         issue.id = Some(id);
-        Ok(issue)
+        Ok(())
     }
 
-    fn update(issue: Issue) -> Result<Issue> {
+    fn update(issue: &mut Issue) -> Result<()> {
         let mut connection = establish_connection()?;
         let id = issue.id.unwrap();
         diesel::update(issues::table.find(id))
-            .set(&issue)
+            .set(&*issue)
             .execute(&mut connection)?;
-        Ok(issue)
+        Ok(())
     }
 
     pub fn delete(issue: &Issue) -> Result<()> {
