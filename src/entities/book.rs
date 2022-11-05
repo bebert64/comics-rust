@@ -116,6 +116,7 @@ mod api_book {
         name: String,
         image: ImageMap,
     }
+
     impl BookResponse {
         pub fn into_entity(self) -> Book {
             // Todo correct mapping

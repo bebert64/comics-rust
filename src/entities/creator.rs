@@ -28,17 +28,12 @@ impl Creator {
         repo_creator::delete(self)
     }
 
-    pub async fn fetch_from_comic_vine_with_thumbnail(id: i32) -> Result<Creator> {
+    pub async fn fetch_from_comic_vine(id: i32) -> Result<Creator> {
         let response = api_creator::fetch_data_from_comic_vine(id).await?;
         let thumbnail = response.fetch_thumbnail_from_comic_vine().await?;
         let mut creator = response.into_entity();
         creator.with_thumbnail(thumbnail);
         Ok(creator)
-    }
-
-    pub async fn fetch_from_comic_vine_without_thumbnail(id: i32) -> Result<Creator> {
-        let response = api_creator::fetch_data_from_comic_vine(id).await?;
-        Ok(response.into_entity())
     }
 }
 
