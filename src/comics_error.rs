@@ -16,6 +16,8 @@ pub enum ComicsError {
     NoIdError,
     #[error("Http connection error")]
     HttpConnectionError(#[from] reqwest::Error),
+    #[error("Walkdir error")]
+    WalkDirError(#[from] walkdir::Error),
 }
 
 pub type Result<T> = std::result::Result<T, ComicsError>;

@@ -1,14 +1,22 @@
 use super::{repo::establish_connection, schema::books};
 use crate::Result;
+use chrono::NaiveDate;
 use diesel::prelude::*;
-use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Default, Queryable, Insertable, Identifiable, AsChangeset)]
+#[derive(Debug, Default, Queryable, Insertable, Identifiable, AsChangeset)]
 pub struct Book {
-    pub id: i32,
+    #[diesel(deserialize_as = i32)]
+    id: Option<i32>,
+    pub is_read: bool,
     pub title: String,
+    pub cover_date: Option<NaiveDate>,
     pub thumbnail: Option<Vec<u8>>,
+    pub comic_vine_id: Option<i32>,
     pub is_tpb: bool,
+    author_id: Option<i32>,
+    artist_id: Option<i32>,
+    #[diesel(column_name = "path")]
+    path_as_string: Option<String>,
 }
 
 impl Book {
@@ -21,7 +29,7 @@ impl Book {
         self
     }
 
-    pub fn save(&self) -> Result<()> {
+    pub fn save(self) -> Result<Book> {
         repo_book::save(self)
     }
 
@@ -45,7 +53,7 @@ impl Book {
 
 mod repo_book {
     use super::{books, establish_connection, Book};
-    use crate::Result;
+    use crate::{ComicsError, Result};
     use diesel::prelude::*;
 
     pub fn fetch_by_id(id: i32) -> Result<Option<Book>> {
@@ -56,30 +64,36 @@ mod repo_book {
             .optional()?)
     }
 
-    pub fn save(creator: &Book) -> Result<()> {
-        match fetch_by_id(creator.id)? {
-            Some(_) => update(creator),
-            None => insert(creator),
+    pub fn save(book: Book) -> Result<Book> {
+        match book.id {
+            Some(_) => update(book),
+            None => insert(book),
         }
     }
 
-    fn insert(book: &Book) -> Result<()> {
+    fn insert(mut book: Book) -> Result<Book> {
         let mut connection = establish_connection()?;
-        diesel::insert_into(books::table)
-            .values(book)
-            .execute(&mut connection)?;
-        Ok(())
+        let id = diesel::insert_into(books::table)
+            .values(&book)
+            .returning(books::id)
+            .get_result(&mut connection)?;
+        book.id = Some(id);
+        Ok(book)
     }
 
-    fn update(book: &Book) -> Result<()> {
+    fn update(book: Book) -> Result<Book> {
         let mut connection = establish_connection()?;
-        diesel::update(book).set(book).execute(&mut connection)?;
-        Ok(())
+        let id = book.id.unwrap();
+        diesel::update(books::table.find(id))
+            .set(&book)
+            .execute(&mut connection)?;
+        Ok(book)
     }
 
     pub fn delete(book: &Book) -> Result<()> {
+        let id = book.id.ok_or(ComicsError::NoIdError)?;
         let mut connection = establish_connection()?;
-        diesel::delete(book).execute(&mut connection)?;
+        diesel::delete(books::table.find(id)).execute(&mut connection)?;
         Ok(())
     }
 }

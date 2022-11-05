@@ -119,7 +119,7 @@ mod api_volume {
     pub async fn fetch_data_from_comic_vine(id: i32) -> Result<VolumeResponse> {
         let url = format!(
             //Todo insert correct url
-            "{API_ROOT}/person/4040-{id}/?api_key={API_KEY}&format=json&field_list=name,id,image"
+            "{API_ROOT}/volume/4050-{id}/?api_key={API_KEY}&format=json&field_list=name,deck,id,image"
         );
         let response: VolumeResponse = get_json(&url).await?;
         Ok(response)

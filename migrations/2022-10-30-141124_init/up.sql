@@ -13,9 +13,15 @@ CREATE TABLE story_arcs (
 
 CREATE TABLE books (
     id INTEGER NOT NULL PRIMARY KEY,
+    is_read BOOLEAN NOT NULL,
 	title VARCHAR (255) NOT NULL,
+    cover_date DATE,
 	thumbnail BLOB,
-    is_tpb BOOLEAN NOT NULL
+    comic_vine_id INTEGER,
+    is_tpb BOOLEAN NOT NULL,
+    author_id INTEGER,
+    artist_id INTEGER,
+    path VARCHAR (255)
 );
 
 CREATE TABLE issues (
@@ -28,7 +34,8 @@ CREATE TABLE issues (
     comic_vine_id INTEGER,
     book_id INTEGER,
     author_id INTEGER,
-    artist_id INTEGER
+    artist_id INTEGER,
+    path VARCHAR (255)
 );
 
 CREATE TABLE publishers (

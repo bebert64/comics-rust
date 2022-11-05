@@ -3,9 +3,15 @@
 diesel::table! {
     books (id) {
         id -> Integer,
+        is_read -> Bool,
         title -> Text,
+        cover_date -> Nullable<Date>,
         thumbnail -> Nullable<Binary>,
+        comic_vine_id -> Nullable<Integer>,
         is_tpb -> Bool,
+        author_id -> Nullable<Integer>,
+        artist_id -> Nullable<Integer>,
+        path -> Nullable<Text>,
     }
 }
 
@@ -29,6 +35,7 @@ diesel::table! {
         book_id -> Nullable<Integer>,
         author_id -> Nullable<Integer>,
         artist_id -> Nullable<Integer>,
+        path -> Nullable<Text>,
     }
 }
 

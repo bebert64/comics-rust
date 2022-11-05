@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use super::{repo::establish_connection, schema::issues};
 use super::{Book, Creator, Volume};
 use crate::{ComicsError, Result};
@@ -17,6 +19,8 @@ pub struct Issue {
     book_id: Option<i32>,
     author_id: Option<i32>,
     artist_id: Option<i32>,
+    #[diesel(column_name = "path")]
+    path_as_string: Option<String>,
 }
 
 impl Issue {
@@ -29,10 +33,10 @@ impl Issue {
         Ok(self)
     }
 
-    pub fn with_book(&mut self, book: &Book) -> Result<&mut Self> {
-        self.book_id = Some(book.id);
-        Ok(self)
-    }
+    // pub fn with_book(&mut self, book: &Book) -> Result<&mut Self> {
+    //     self.book_id = Some(book.id);
+    //     Ok(self)
+    // }
 
     pub fn with_author(&mut self, creator: &Creator) -> Result<&mut Self> {
         self.author_id = Some(creator.id);
@@ -64,6 +68,14 @@ impl Issue {
 
     pub fn delete(&self) -> Result<()> {
         repo_issue::delete(self)
+    }
+
+    pub fn path(&self) -> Option<PathBuf> {
+        if let Some(path) = &self.path_as_string {
+            Some(PathBuf::from(path))
+        } else {
+            None
+        }
     }
 }
 
