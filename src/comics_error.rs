@@ -18,6 +18,8 @@ pub enum ComicsError {
     HttpConnectionError(#[from] reqwest::Error),
     #[error("Walkdir error")]
     WalkDirError(#[from] walkdir::Error),
+    #[error("Regex parsing error")]
+    RegexError(#[from] regex::Error),
 }
 
 pub type Result<T> = std::result::Result<T, ComicsError>;

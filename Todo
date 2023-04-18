@@ -13,3 +13,8 @@ Lib NAS
 
 lib api
     get metadata from folder name
+
+
+
+
+issue : unique comic_vine_id + modify save procedure

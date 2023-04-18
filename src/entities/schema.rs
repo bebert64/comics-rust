@@ -60,8 +60,10 @@ diesel::table! {
 diesel::table! {
     volumes (id) {
         id -> Integer,
-        number -> Integer,
         thumbnail -> Nullable<Binary>,
+        title -> Text,
+        publisher_id -> Nullable<Integer>,
+        year_start -> Nullable<Integer>,
     }
 }
 

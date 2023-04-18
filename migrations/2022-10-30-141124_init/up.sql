@@ -21,7 +21,8 @@ CREATE TABLE books (
     is_tpb BOOLEAN NOT NULL,
     author_id INTEGER,
     artist_id INTEGER,
-    path VARCHAR (255)
+    path VARCHAR (255),
+    UNIQUE (path)
 );
 
 CREATE TABLE issues (
@@ -35,7 +36,8 @@ CREATE TABLE issues (
     book_id INTEGER,
     author_id INTEGER,
     artist_id INTEGER,
-    path VARCHAR (255)
+    path VARCHAR (255),
+    UNIQUE (path)
 );
 
 CREATE TABLE publishers (

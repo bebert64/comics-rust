@@ -1,13 +1,16 @@
 use super::{repo::establish_connection, schema::volumes};
 use crate::Result;
+pub use api_volume::{search_by_name, SearchResult};
 use diesel::prelude::*;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Default, Queryable, Insertable, Identifiable, AsChangeset)]
 pub struct Volume {
     pub id: i32,
-    pub number: i32,
     pub thumbnail: Option<Vec<u8>>,
+    pub title: String,
+    pub publisher_id: Option<i32>,
+    pub year_start: Option<i32>,
 }
 
 impl Volume {
@@ -28,17 +31,13 @@ impl Volume {
         repo_volume::delete(self)
     }
 
-    pub async fn fetch_from_comic_vine_with_thumbnail(id: i32) -> Result<Volume> {
+    pub async fn fetch_from_comic_vine(id: i32) -> Result<(Volume, Vec<i32>)> {
         let response = api_volume::fetch_data_from_comic_vine(id).await?;
         let thumbnail = response.fetch_thumbnail_from_comic_vine().await?;
+        let issues = response.issues();
         let mut volume = response.into_entity();
         volume.with_thumbnail(thumbnail);
-        Ok(volume)
-    }
-
-    pub async fn fetch_from_comic_vine_without_thumbnail(id: i32) -> Result<Volume> {
-        let response = api_volume::fetch_data_from_comic_vine(id).await?;
-        Ok(response.into_entity())
+        Ok((volume, issues))
     }
 }
 
@@ -89,7 +88,7 @@ mod api_volume {
     use super::Volume;
     use crate::api::{get_json, get_thumbnail, ImageMap, API_KEY, API_ROOT};
     use crate::Result;
-    use serde::Deserialize;
+    use serde::{Deserialize, Serialize};
 
     #[derive(Deserialize, Debug)]
     pub struct VolumeResponse {
@@ -98,30 +97,89 @@ mod api_volume {
 
     #[derive(Deserialize, Debug)]
     struct VolumeResult {
-        // Todo correct fields
+        deck: Option<String>,
         id: i32,
-        name: String,
         image: ImageMap,
+        issues: Vec<IssueResult>,
+        name: String,
+        publisher: PublisherResult,
+        start_year: Option<String>,
+    }
+
+    #[derive(Deserialize, Debug)]
+    struct IssueResult {
+        id: i32,
+    }
+
+    #[derive(Deserialize, Debug)]
+    struct PublisherResult {
+        id: i32,
     }
 
     impl VolumeResponse {
         pub fn into_entity(self) -> Volume {
-            // Todo correct mapping
-            Volume::default()
+            Volume {
+                id: self.results.id,
+                title: format!("{}{}", self.results.name, self.deck_as_name()),
+                thumbnail: None,
+                publisher_id: Some(self.results.publisher.id),
+                year_start: self
+                    .results
+                    .start_year
+                    .map(|s| s.parse::<i32>().unwrap_or_default()),
+            }
         }
 
         pub async fn fetch_thumbnail_from_comic_vine(&self) -> Result<Vec<u8>> {
             let url = &self.results.image.thumb_url;
             Ok(get_thumbnail(url).await?)
         }
+
+        fn deck_as_name(&self) -> String {
+            // TODO : correct deck
+            println!("deck : {:?}", self.results.deck);
+            let deck = self.results.deck.clone().unwrap_or_default();
+            if deck.trim().is_empty() {
+                "".to_string()
+            } else {
+                format!(" v{}", deck)
+            }
+        }
+
+        pub fn issues(&self) -> Vec<i32> {
+            self.results.issues.iter().map(|issue| issue.id).collect()
+        }
     }
 
     pub async fn fetch_data_from_comic_vine(id: i32) -> Result<VolumeResponse> {
         let url = format!(
-            //Todo insert correct url
-            "{API_ROOT}/volume/4050-{id}/?api_key={API_KEY}&format=json&field_list=name,deck,id,image"
+            "{API_ROOT}/volume/4050-{id}/?api_key={API_KEY}&format=json&field_list=deck,id,image,issues,name,publisher,start_year"
         );
+        println!("{url}");
         let response: VolumeResponse = get_json(&url).await?;
         Ok(response)
+    }
+
+    #[derive(Deserialize, Debug)]
+    struct SearchResponse {
+        results: Vec<SearchResult>,
+    }
+
+    #[derive(Deserialize, Debug, Serialize)]
+    pub struct SearchResult {
+        pub count_of_issues: i32,
+        pub id: i32,
+        pub name: String,
+        pub description: Option<String>,
+    }
+
+    pub async fn search_by_name(name: &str) -> Result<Vec<SearchResult>> {
+        let url = format!("{API_ROOT}/volumes/?api_key={API_KEY}&format=json&filter=name:{name}");
+        println!("{url}");
+        let response: SearchResponse = get_json(&url).await?;
+        let mut results = response.results;
+        results.sort_by(|a, b| a.count_of_issues.partial_cmp(&b.count_of_issues).unwrap());
+        results.reverse();
+        Ok(results)
     }
 }

@@ -1,0 +1,40 @@
+Buffy the Vampire Slayer Season 9 - 21.cbz
+Buffy the Vampire Slayer Season 10 v03 - Love Dares You.zip
+02. Buffy the Vampire Slayer - Welcome to the Whedonverse.zip
+06. Hellmouth 01-05.zip
+08. East of West v08.zip
+33. Teenage Mutant Ninja Turtles 61-64 - Chasing Phantoms.zip
+28. Teenage Mutant Ninja Turtles v13 - Vengeance - Part 2.zip
+12. The Secret History of the Foot Clan.zip
+47. TMNT - Usagi Yojimbo - Namazu.zip
+41. Teenage Mutant Ninja Turtles 66 - Desperate Measures Prologue.zip
+69. TMNT Universe 19 Back-up - Kingdom of Rats Prelude.zip
+42. TMNT Universe 07-08 Main story - Metalhead 2.0.zip
+TMNT v4 14.zip
+136 - The Wild Hunt 05.cbz
+076 - The Hydra and the Lion.zip
+104 - BPRD - 1946 02.zip
+Savior.zip
+Sheriff of Babylon - The Deluxe Edition.zip
+159. Miles Morales - Ultimate Spider-Man 10-12.zip
+061. Ultimate X-Men Annual 01.zip
+139. Ultimate Comics Spider-Man 16.1 + 19-22 - Venom War.zip
+147. Ultimate Comics Spider-Man 23-28 - Spider-Man No More.zip
+038. Batman - Birth of the Demon.zip
+173. Batman 655-658 + 663-666 - Batman & Son.zip
+064. DC One Million Part III (from issues).zip
+232. Batman Incorporated v2 v02 - Gotham's Most Wanted.zip
+213. Blackest Night Part I (from issues) - Prologue + BN 01-02 + Tie-ins.zip
+191. Batman - Last Rites (from issues).zip
+196. Justice League of America v2 27-34 - When Worlds Collide.zip
+177. Justice League of America v2 13-16 + Wedding Special - Injustice League Unlimited.zip
+113. Adventures of Superman 625-632 - Unconventional Warfare.zip
+
+
+^([0-9]{2,3}(\. | - ))?(.*)(.zip|.cbr|.cbz)\n
+Buffy season 9 
+([0-9]{2,3}(\. | - ))?(.*) - [0-9]{2,3}(.zip|.cbr|.cbz)\n
+Buffy season 10
+([0-9]{2,3}(\. | - ))?(.*) v[0-9]{2}( - (.*))(.zip|.cbr|.cbz)\n
+
+ 
