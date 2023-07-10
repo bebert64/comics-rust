@@ -1,27 +1,28 @@
 [package]
-name = "comics_rust"
-version = "0.1.0"
-edition = "2021"
+	edition = "2021"
+	name = "comics_rust"
+	version = "0.1.0"
 
 [lib]
-# name = "comics-rust"
+	# name = "comics-rust"
 
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+	# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = "0.4"
-# deezer_downloader = "0.1"
-tokio = { version = "1", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-reqwest = { version = "0.11", features = ["json"] }
-diesel = { version = "2.0.0-rc.1", features = [
-    "sqlite",
-    "returning_clauses_for_sqlite_3_35",
-    "chrono",
-] }
-dotenv = "0.15"
-thiserror = "1.0"
-anyhow = "1.0"
-walkdir = "2.0"
-regex = "1"
+	chrono = "0.4"
+	# deezer_downloader = "0.1"
+	anyhow = "1.0"
+	diesel = { version = "2", features = ["chrono"] }
+	dotenv = "0.15"
+	regex = "1"
+	reqwest = { version = "0.11", features = ["json"] }
+	serde = { version = "1.0", features = ["derive"] }
+	thiserror = "1.0"
+	tokio = { version = "1", features = ["full"] }
+	walkdir = "2.0"
+	zip = "0.6"
+
+[[bin]]
+	name = "unzip-all"
+	path = "scripts/unzip_all.rs"
