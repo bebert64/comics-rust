@@ -1,4 +1,5 @@
 use {
+    clap::Parser,
     std::{
         fs::{create_dir_all, File},
         io::copy,
@@ -6,10 +7,18 @@ use {
     walkdir::WalkDir,
 };
 
+#[derive(Parser, Debug)]
+struct Args {
+    /// Folder to trat
+    #[arg(short, long)]
+    folder: String,
+}
+
 fn main() -> anyhow::Result<()> {
     println!("Starting");
-    let root_dir = "/home/DonBeberto/NAS/Comics/Fini/";
-    // let root_dir = "/home/romain/Mnt/NAS/Comics/Fini/";
+
+    let args = Args::parse();
+    let root_dir = args.folder;
     let walk_dir = WalkDir::new(root_dir).into_iter();
     let mut counter = 0;
     for entry in walk_dir.filter_entry(|e| {
@@ -28,10 +37,11 @@ fn main() -> anyhow::Result<()> {
             }) {
                 println!("{file_name:?}");
                 let zip_file = File::open(entry.path())?;
-                let mut archive = zip::ZipArchive::new(zip_file).unwrap();
+                let mut archive = zip::ZipArchive::new(zip_file)?;
+                let mut counter_file = 0;
 
                 for i in 0..archive.len() {
-                    let mut file = archive.by_index(i).unwrap();
+                    let mut file = archive.by_index(i)?;
                     let outpath = match file.enclosed_name() {
                         Some(path) => entry
                             .path()
@@ -43,24 +53,21 @@ fn main() -> anyhow::Result<()> {
                     };
                     if !outpath.exists() {
                         if (*file.name()).ends_with('/') {
-                            // println!("File {} extracted to \"{}\"", i, outpath.display());
-                            create_dir_all(&outpath).unwrap();
+                            create_dir_all(&outpath)?;
                         } else {
-                            // println!(
-                            //     "File {} extracted to \"{}\" ({} bytes)",
-                            //     i,
-                            //     outpath.display(),
-                            //     file.size()
-                            // );
                             if let Some(p) = outpath.parent() {
                                 if !p.exists() {
-                                    create_dir_all(p).unwrap();
+                                    create_dir_all(p)?;
                                 }
                             }
-                            let mut outfile = File::create(&outpath).unwrap();
-                            copy(&mut file, &mut outfile).unwrap();
+                            let mut outfile = File::create(&outpath)?;
+                            copy(&mut file, &mut outfile)?;
                         }
+                        counter_file += 1;
                     }
+                }
+                if counter_file > 1 {
+                    println!("Extracted {counter_file} files");
                 }
                 counter += 1;
             }
@@ -69,6 +76,6 @@ fn main() -> anyhow::Result<()> {
             }
         }
     }
-    println!("Total : {counter}");
+    println!("Total files treated : {counter}");
     Ok(())
 }
