@@ -3,9 +3,6 @@
 	name = "comics_rust"
 	version = "0.1.0"
 
-[lib]
-	name = "comics-rust"
-
 [dependencies]
 	chrono = "0.4"
 	# deezer_downloader = "0.1"
