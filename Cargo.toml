@@ -4,10 +4,7 @@
 	version = "0.1.0"
 
 [lib]
-	# name = "comics-rust"
-
-
-	# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+	name = "comics-rust"
 
 [dependencies]
 	chrono = "0.4"
