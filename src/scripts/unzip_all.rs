@@ -1,5 +1,4 @@
 use {
-    clap::Parser,
     std::{
         fs::{create_dir_all, File},
         io::copy,
@@ -7,18 +6,9 @@ use {
     walkdir::WalkDir,
 };
 
-#[derive(Parser, Debug)]
-struct Args {
-    /// Folder to trat
-    #[arg(short, long)]
-    folder: String,
-}
-
-fn main() -> anyhow::Result<()> {
+pub fn perform(root_dir: &str) -> anyhow::Result<()> {
     println!("Starting");
 
-    let args = Args::parse();
-    let root_dir = args.folder;
     let walk_dir = WalkDir::new(root_dir).into_iter();
     let mut counter = 0;
     for entry in walk_dir.filter_entry(|e| {
