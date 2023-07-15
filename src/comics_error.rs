@@ -1,25 +1,31 @@
-use thiserror::Error;
+pub type ComicsResult<T> = std::result::Result<T, ComicsError>;
 
-#[derive(Error, Debug)]
-pub enum ComicsError {
-    #[error(transparent)]
-    EnvVarError(#[from] std::env::VarError),
-    #[error(transparent)]
-    DbError(#[from] diesel::result::Error),
-    #[error(transparent)]
-    SqliteError(#[from] diesel::result::ConnectionError),
-    #[error("Trying to save without affecting an id")]
-    SavingDefaultError,
-    #[error("Trying to retrieve via a missing foreign key")]
-    ForeignKeyError,
-    #[error("Trying to update or delete a struct without id")]
-    NoIdError,
-    #[error("Http connection error")]
-    HttpConnectionError(#[from] reqwest::Error),
-    #[error("Walkdir error")]
-    WalkDirError(#[from] walkdir::Error),
-    #[error("Regex parsing error")]
-    RegexError(#[from] regex::Error),
+impl ComicsError {
+    pub(crate) fn report(&self) {
+        println!("Error : {:?}", self.inner)
+    }
 }
 
-pub type Result<T> = std::result::Result<T, ComicsError>;
+#[derive(Debug)]
+pub struct ComicsError {
+    inner: anyhow::Error,
+}
+
+impl<T: Into<anyhow::Error>> From<T> for ComicsError {
+    fn from(err: T) -> Self {
+        Self { inner: err.into() }
+    }
+}
+
+/// Execute lambda and send error to sentry in case of error
+pub(crate) fn try_or_report(lambda: impl FnOnce() -> ComicsResult<()>) {
+    if let Err(err) = lambda() {
+        err.report();
+    }
+}
+
+pub(crate) fn err_msg<R>(msg: String) -> ComicsResult<R> {
+    Err(ComicsError {
+        inner: anyhow::Error::msg(msg),
+    })
+}
