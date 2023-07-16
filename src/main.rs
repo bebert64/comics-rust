@@ -1,4 +1,4 @@
-use comics_rust::{scripts, ComicsResult};
+use comics_rust::{data_recovery, ComicsResult};
 
 use clap::{Parser, Subcommand};
 
@@ -27,9 +27,9 @@ enum Commands {
 fn main() -> ComicsResult<()> {
     let cli = Cli::parse();
     match &cli.command {
-        Some(Commands::Unzip { directory }) => scripts::unzip_all(&directory),
-        Some(Commands::RemoveEaDirs { directory }) => scripts::remove_ea_dirs(&directory),
-        Some(Commands::Parse { directory }) => scripts::parse_existing_dir(&directory),
+        Some(Commands::Unzip { directory }) => data_recovery::unzip_all(&directory),
+        Some(Commands::RemoveEaDirs { directory }) => data_recovery::remove_ea_dirs(&directory),
+        Some(Commands::Parse { directory }) => data_recovery::parse_existing_dir(&directory),
         None => (),
     }
     Ok(())
