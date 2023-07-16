@@ -2,8 +2,19 @@
 
 pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "zip_status"))]
-    pub struct ZipStatus;
+    #[diesel(postgres_type(name = "archive_status"))]
+    pub struct ArchiveStatus;
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::ArchiveStatus;
+
+    archives (id) {
+        id -> Int4,
+        path -> Text,
+        status -> ArchiveStatus,
+    }
 }
 
 diesel::table! {
@@ -30,15 +41,11 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::ZipStatus;
-
     issues (id) {
         id -> Int4,
         volume_id -> Int4,
         number -> Int4,
         dir -> Nullable<Text>,
-        status -> ZipStatus,
     }
 }
 
@@ -65,17 +72,6 @@ diesel::table! {
     }
 }
 
-diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::ZipStatus;
-
-    zips (id) {
-        id -> Int4,
-        path -> Text,
-        status -> ZipStatus,
-    }
-}
-
 diesel::joinable!(books_additional_files -> books (bookd_id));
 diesel::joinable!(books_issues -> books (bookd_id));
 diesel::joinable!(books_issues -> issues (issue_id));
@@ -85,6 +81,7 @@ diesel::joinable!(reading_order_elements -> issues (issue_id));
 diesel::joinable!(reading_order_elements -> reading_orders (reading_order_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    archives,
     books,
     books_additional_files,
     books_issues,
@@ -92,5 +89,4 @@ diesel::allow_tables_to_appear_in_same_query!(
     reading_order_elements,
     reading_orders,
     volumes,
-    zips,
 );

@@ -2,7 +2,7 @@ pub type ComicsResult<T> = std::result::Result<T, ComicsError>;
 
 impl ComicsError {
     pub(crate) fn report(&self) {
-        println!("Error : {:?}", self.inner)
+        println!("ComicsError : {:?}", self.inner)
     }
 }
 

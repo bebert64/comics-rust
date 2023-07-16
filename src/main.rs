@@ -10,11 +10,15 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Unzip {
+    RemoveEaDirs {
         #[arg(short, long)]
         directory: String,
     },
-    RemoveEaDirs {
+    Find {
+        #[arg(short, long)]
+        directory: String,
+    },
+    Unzip {
         #[arg(short, long)]
         directory: String,
     },
@@ -27,8 +31,9 @@ enum Commands {
 fn main() -> ComicsResult<()> {
     let cli = Cli::parse();
     match &cli.command {
-        Some(Commands::Unzip { directory }) => data_recovery::unzip_all(&directory),
         Some(Commands::RemoveEaDirs { directory }) => data_recovery::remove_ea_dirs(&directory),
+        Some(Commands::Find { directory }) => data_recovery::find_archives(&directory)?,
+        Some(Commands::Unzip { directory }) => data_recovery::unzip_all(&directory),
         Some(Commands::Parse { directory }) => data_recovery::parse_existing_dir(&directory),
         None => (),
     }
