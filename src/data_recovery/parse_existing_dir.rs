@@ -1,9 +1,13 @@
+use super::{Archive, ArchiveStatus};
+
 use crate::{
     comics_error::{err_msg, try_or_report},
-    ComicsResult,
+    diesel_helpers::db,
+    nas_path, schema, ComicsResult,
 };
 
 use {
+    diesel::prelude::*,
     std::{
         collections::HashMap,
         fs::{read_dir, remove_dir, rename},
@@ -12,30 +16,20 @@ use {
     walkdir::WalkDir,
 };
 
-pub fn perform(root_dir: &str) {
-    let walk_dir = WalkDir::new(root_dir).into_iter();
-    for entry in walk_dir.filter_entry(|e| {
-        e.file_type().is_dir()
-            && !e
-                .file_name()
-                .to_str()
-                .is_some_and(|s| s == "14 Planet of the Apes issues")
-    }) {
+pub fn perform() -> ComicsResult<()> {
+    let mut db = db()?;
+    let archives = schema::archives::table
+        .select(Archive::as_select())
+        .filter(schema::archives::status.eq(ArchiveStatus::Found))
+        .get_results(&mut db)?;
+    let comics_root = nas_path(Some("Comics"))?;
+    for archive in archives.into_iter() {
         try_or_report(|| {
-            let entry = entry?;
-            if entry
-                .file_name()
-                .to_str()
-                .is_some_and(|s| s.ends_with("-unzip"))
-            {
-                let parsed_dir = parse_dir(&entry.path())?;
-                if matches!(parsed_dir, ParsedDir::IssueWithLowNumberOfFiles) {
-                    println!("{parsed_dir:?} : {}", entry.path().to_str().unwrap());
-                }
-            };
+            let parsed_dir = parse_dir(&archive.into_comics_dir()?);
             Ok(())
         })
     }
+    Ok(())
 }
 
 // struct Issue {

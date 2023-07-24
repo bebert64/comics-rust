@@ -5,13 +5,8 @@ use crate::{comics_error::try_or_report, diesel_helpers::db, nas_path, schema, C
 use {diesel::prelude::*, walkdir::WalkDir};
 
 pub fn perform(dir: &str) -> ComicsResult<()> {
-    let mut comics_root = nas_path()?;
-    comics_root.push("Comics_unzipped");
-    if !comics_root.exists() {
-        panic!("not found")
-    }
-    let mut dir_path = comics_root.clone()?;
-    dir_path.push(dir);
+    let comics_root = nas_path(Some("Comics_zipped"))?;
+    let dir_path = comics_root.clone().join(dir);
     let walk_dir = WalkDir::new(dir_path).into_iter();
     for entry in walk_dir.filter_entry(|e| {
         !(e.file_type().is_dir()

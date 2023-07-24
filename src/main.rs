@@ -18,14 +18,8 @@ enum Commands {
         #[arg(short, long)]
         directory: String,
     },
-    Unzip {
-        #[arg(short, long)]
-        directory: String,
-    },
-    Parse {
-        #[arg(short, long)]
-        directory: String,
-    },
+    Unzip {},
+    Parse {},
 }
 
 fn main() -> ComicsResult<()> {
@@ -33,8 +27,8 @@ fn main() -> ComicsResult<()> {
     match &cli.command {
         Some(Commands::RemoveEaDirs { directory }) => data_recovery::remove_ea_dirs(&directory),
         Some(Commands::Find { directory }) => data_recovery::find_archives(&directory)?,
-        Some(Commands::Unzip { directory }) => data_recovery::unzip_all(&directory),
-        Some(Commands::Parse { directory }) => data_recovery::parse_existing_dir(&directory),
+        Some(Commands::Unzip {}) => data_recovery::unzip()?,
+        Some(Commands::Parse {}) => data_recovery::parse_existing_dir()?,
         None => (),
     }
     Ok(())

@@ -13,7 +13,11 @@ use {
 #[macro_use]
 extern crate serde_derive;
 
-fn nas_path() -> ComicsResult<PathBuf> {
+fn nas_path(subdir: Option<&'static str>) -> ComicsResult<PathBuf> {
     dotenv()?;
-    Ok(PathBuf::from(var("NAS_PATH")?))
+    let mut nas_path = PathBuf::from(var("NAS_PATH")?);
+    if let Some(subdir) = subdir {
+        nas_path.push(subdir);
+    }
+    Ok(nas_path)
 }

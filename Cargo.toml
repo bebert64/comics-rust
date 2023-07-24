@@ -6,7 +6,12 @@
 [dependencies]
 	anyhow = "1"
 	clap = { version = "4", features = ["derive", "cargo"] }
-	diesel = { version = "2", features = ["chrono", "postgres"] }
+	diesel = { git = "https://github.com/Ten0/diesel", branch = "for_stockly_main", features = [
+		"postgres",
+		"r2d2",
+		"serde_json",
+		"chrono",
+	] }
 	diesel-derive-enum = { git = "https://github.com/Ten0/diesel-derive-enum/", branch = "support_auto_queryid_derive", features = [
 		"postgres",
 	] }
