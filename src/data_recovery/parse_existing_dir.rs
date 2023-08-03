@@ -9,26 +9,24 @@ use crate::{
 use {
     diesel::prelude::*,
     std::{
-        collections::HashMap,
         fs::{read_dir, remove_dir, rename},
         path::{Path, PathBuf},
     },
-    walkdir::WalkDir,
 };
 
 pub fn perform() -> ComicsResult<()> {
-    let mut db = db()?;
-    let archives = schema::archives::table
-        .select(Archive::as_select())
-        .filter(schema::archives::status.eq(ArchiveStatus::Found))
-        .get_results(&mut db)?;
-    let comics_root = nas_path(Some("Comics"))?;
-    for archive in archives.into_iter() {
-        try_or_report(|| {
-            let parsed_dir = parse_dir(&archive.into_comics_dir()?);
-            Ok(())
-        })
-    }
+    // let mut db = db()?;
+    // let archives = schema::archives::table
+    //     .select(Archive::as_select())
+    //     .filter(schema::archives::status.eq(ArchiveStatus::ToParse))
+    //     .get_results(&mut db)?;
+    // let comics_root = nas_path(Some("Comics"))?;
+    // for archive in archives.into_iter() {
+    //     try_or_report(|| {
+    //         let parsed_dir = parse_dir(&archive.into_comics_dir()?);
+    //         Ok(())
+    //     })
+    // }
     Ok(())
 }
 
