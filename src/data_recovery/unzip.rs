@@ -14,7 +14,7 @@ pub fn perform() -> ComicsResult<()> {
     let mut db = db()?;
     let archives = schema::archives::table
         .select(Archive::as_select())
-        .filter(schema::archives::status.eq(ArchiveStatus::Found))
+        .filter(schema::archives::status.eq(ArchiveStatus::ToUnzip))
         .get_results(&mut db)?;
     let comics_zipped_root = nas_path(Some("Comics_zipped"))?;
     println!("Unzipping {} archives", archives.len());
@@ -49,7 +49,7 @@ pub fn perform() -> ComicsResult<()> {
             }
             println!("Extracted {counter_file} files to {outdir:?}");
             diesel::update(schema::archives::table.find(&archive.id))
-                .set(schema::archives::status.eq(ArchiveStatus::Unzipped))
+                .set(schema::archives::status.eq(ArchiveStatus::ToParse))
                 .execute(&mut db)?;
             Ok(())
         })

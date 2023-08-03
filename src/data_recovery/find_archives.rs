@@ -28,7 +28,7 @@ pub fn perform(dir: &str) -> ComicsResult<()> {
                         .values((
                             schema::archives::path
                                 .eq(relative_path.to_str().expect("Should have a path")),
-                            schema::archives::status.eq(ArchiveStatus::Found),
+                            schema::archives::status.eq(ArchiveStatus::ToUnzip),
                         ))
                         .execute(&mut db()?)?;
                 }

@@ -21,11 +21,12 @@ struct Archive {
 
 #[derive(Debug, Clone, Copy, DbEnum, PartialEq, Eq, Hash, Serialize)]
 enum ArchiveStatus {
-    Found,
-    Unzipped,
-    ParsedType,
-    ParsedInfo,
-    HasComicsVineId,
+    ToUnzip,
+    ToParse,
+    ToParseIssues,
+    ToCompleteIssues,
+    ToSearchComicVineId,
+    Ok,
 }
 
 impl Archive {
