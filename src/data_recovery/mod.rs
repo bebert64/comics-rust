@@ -13,14 +13,14 @@ use crate::{nas_path, schema::archives, ComicsResult};
 use {diesel::prelude::*, diesel_derive_enum::DbEnum, std::path::PathBuf};
 
 #[derive(Queryable, Selectable, Insertable)]
-struct Archive {
+pub(crate) struct Archive {
     pub id: i32,
     pub path: String,
     pub status: ArchiveStatus,
 }
 
 #[derive(Debug, Clone, Copy, DbEnum, PartialEq, Eq, Hash, Serialize)]
-enum ArchiveStatus {
+pub(crate) enum ArchiveStatus {
     ToUnzip,
     ToParse,
     ToParseIssues,

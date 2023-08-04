@@ -19,4 +19,5 @@
 	serde = "1"
 	serde_derive = "1"
 	walkdir = "2"
-	zip = "0.6"
+	yew = { version = "0.20", features = ["csr"] }
+	zip = { version = "0.6", default-features = false }

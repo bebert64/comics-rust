@@ -2,6 +2,7 @@ mod comics_error;
 pub mod data_recovery;
 mod diesel_helpers;
 mod schema;
+pub mod yew;
 
 pub use comics_error::ComicsResult;
 
