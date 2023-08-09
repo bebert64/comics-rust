@@ -8,7 +8,9 @@ use crate::{
 
 use {
     diesel::prelude::*,
+    lazy_static::lazy_static,
     std::{
+        collections::HashMap,
         fs::{read_dir, remove_dir, rename},
         path::{Path, PathBuf},
     },
@@ -30,36 +32,35 @@ pub fn perform() -> ComicsResult<()> {
     Ok(())
 }
 
-// struct Issue {
-//     volume: Volume,
-//     number: usize,
-//     dir: Option<PathBuf>,
-// }
+struct Issue {
+    volume_name: String,
+    number: usize,
+    path: Option<PathBuf>,
+}
 
-// struct Volume {
-//     name: String,
-// }
+struct Book {
+    name: Option<String>,
+    path: Option<PathBuf>,
+    book_type: BookType,
+    issues_sorted: Option<Vec<Issue>>,
+    additional_files_sorted: Option<Vec<PathBuf>>,
+}
 
-// struct Book {
-//     issues: HashMap<usize, Issue>,
-//     dir: Option<PathBuf>,
-//     additional_files: Option<Vec<PathBuf>>,
-// }
+enum BookType {
+    GraphicNovel,
+    SingleVolume,
+    MultiVolume,
+}
 
-// struct ReadingOrder<T> {
-//     elements: HashMap<usize, T>,
-// }
-
-#[derive(Debug)]
-enum ParsedDir {
+#[derive(Debug, Serialize, Clone)]
+pub(crate) enum ParsedDir {
     Issue,
     BookWithNoIssue,
     BookWithIssues,
     BookWithIssuesAndBonus,
-    IssueWithLowNumberOfFiles,
 }
 
-fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
+pub(crate) fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
     let (files, subdirs): (Vec<_>, Vec<_>) = read_dir(dir)?.into_iter().partition(|elem| {
         elem.as_ref()
             .expect("No reason it should fail ??")
@@ -80,7 +81,6 @@ fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
     }
 
     Ok(match (subdirs.len(), files.len()) {
-        (0, n) if n <= 10 => ParsedDir::IssueWithLowNumberOfFiles,
         (0, n) if n <= 50 => ParsedDir::Issue,
         (0, _) => ParsedDir::BookWithNoIssue,
         (1, 0) => {
@@ -88,7 +88,6 @@ fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
             use ParsedDir::*;
             match parse_dir(dir)? {
                 Issue => Issue,
-                IssueWithLowNumberOfFiles => IssueWithLowNumberOfFiles,
                 BookWithNoIssue => BookWithNoIssue,
                 BookWithIssues | BookWithIssuesAndBonus => {
                     return err_msg(format!("Failed to parse {:?}", dir))
@@ -139,4 +138,9 @@ fn remove_extra_layers(directory: &Path) -> ComicsResult<()> {
         }
     }
     Ok(())
+}
+
+lazy_static! {
+    pub(crate) static ref PARSE_METHODS: HashMap<&'static str, &'static str> =
+        HashMap::from([("test", "my_regex"), ("test_2", "my_other_regex")]);
 }

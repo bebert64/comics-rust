@@ -29,8 +29,7 @@ diesel::table! {
         id -> Int4,
         name -> Nullable<Text>,
         path -> Nullable<Text>,
-        #[sql_name = "type"]
-        type_ -> BookType,
+        book_type -> BookType,
     }
 }
 
@@ -39,6 +38,7 @@ diesel::table! {
         id -> Int4,
         book_id -> Int4,
         file_path -> Text,
+        position -> Int4,
     }
 }
 
