@@ -1,4 +1,4 @@
-use super::failable_response;
+use super::try_or_send_err;
 
 use crate::{
     data_recovery::{
@@ -14,10 +14,21 @@ use {
     diesel::prelude::*,
 };
 
+#[derive(Deserialize, Debug)]
+struct ParseQuery {
+    ids: Vec<i32>,
+}
+
+#[derive(Serialize)]
+struct ParsedArchive {
+    id: i32,
+    result: ParsedDir,
+}
+
 #[get("/api/archives")]
 async fn get_archives() -> impl Responder {
-    failable_response!({
-        let mut db = db().expect("DB available");
+    try_or_send_err!({
+        let mut db = db()?;
         let archives = schema::archives::table
             .select(Archive::as_select())
             .filter(schema::archives::status.eq(ArchiveStatus::ToParse))
@@ -30,7 +41,7 @@ async fn get_archives() -> impl Responder {
 
 #[get("/api/archives/parse_methods")]
 async fn parse_methods() -> impl Responder {
-    failable_response!({
+    try_or_send_err!({
         let body = serde_json::to_string(&PARSE_METHODS.keys().collect::<Vec<_>>())?;
         Ok(HttpResponse::Ok()
             .content_type(ContentType::json())
@@ -38,20 +49,9 @@ async fn parse_methods() -> impl Responder {
     })
 }
 
-#[derive(Deserialize, Debug)]
-struct ParseQuery {
-    ids: Vec<i32>,
-}
-
-#[derive(Serialize)]
-struct ParsedArchive {
-    id: i32,
-    result: ParsedDir,
-}
-
 #[get("/api/archives/parse")]
 async fn parse(req: HttpRequest) -> impl Responder {
-    failable_response!({
+    try_or_send_err!({
         let query: ParseQuery = serde_qs::from_str(req.query_string())?;
         let mut db = db()?;
         let archives = schema::archives::table

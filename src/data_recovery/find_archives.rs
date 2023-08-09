@@ -1,6 +1,10 @@
 use super::ArchiveStatus;
 
-use crate::{comics_error::try_or_report, diesel_helpers::db, nas_path, schema, ComicsResult};
+use crate::{
+    comics_error::{try_or_report, ComicsResultOptionExtensions},
+    diesel_helpers::db,
+    nas_path, schema, ComicsResult,
+};
 
 use {diesel::prelude::*, walkdir::WalkDir};
 
@@ -13,7 +17,7 @@ pub fn perform(dir: &str) -> ComicsResult<()> {
             .to_str()
             .is_some_and(|s| s == "14 Planet of the Apes issues"))
     }) {
-        try_or_report(|| {
+        try_or_report(|| -> ComicsResult<_> {
             let entry = entry?;
             if entry.file_type().is_file() {
                 if entry.file_name().to_str().is_some_and(|s| {
@@ -25,8 +29,9 @@ pub fn perform(dir: &str) -> ComicsResult<()> {
                     let relative_path = entry.path().strip_prefix(&comics_root)?;
                     diesel::insert_into(schema::archives::table)
                         .values((
-                            schema::archives::path
-                                .eq(relative_path.to_str().expect("Should have a path")),
+                            schema::archives::path.eq(relative_path
+                                .to_str()
+                                .ok_or_comics_err("Should have a path")?),
                             schema::archives::status.eq(ArchiveStatus::ToUnzip),
                         ))
                         .execute(&mut db()?)?;

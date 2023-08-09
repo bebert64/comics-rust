@@ -1,7 +1,7 @@
 use super::{Archive, ArchiveStatus};
 
 use crate::{
-    comics_error::{err_msg, try_or_report},
+    comics_error::{err_msg, try_or_report, ComicsResultOptionExtensions},
     diesel_helpers::db,
     nas_path, schema, ComicsResult,
 };
@@ -61,20 +61,17 @@ pub(crate) enum ParsedDir {
 }
 
 pub(crate) fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
-    let (files, subdirs): (Vec<_>, Vec<_>) = read_dir(dir)?.into_iter().partition(|elem| {
-        elem.as_ref()
-            .expect("No reason it should fail ??")
-            .path()
-            .is_file()
-    });
+    let (files, subdirs): (Vec<_>, Vec<_>) = read_dir(dir)?
+        .into_iter()
+        .map(|result| -> ComicsResult<_> { Ok(result?) })
+        .collect::<ComicsResult<Vec<_>>>()?
+        .into_iter()
+        .partition(|elem| elem.path().is_file());
 
-    fn remove_layers_in_subdirs(
-        subdirs: Vec<Result<std::fs::DirEntry, std::io::Error>>,
-    ) -> ComicsResult<()> {
+    fn remove_layers_in_subdirs(subdirs: Vec<std::fs::DirEntry>) -> ComicsResult<()> {
         subdirs
             .into_iter()
             .try_for_each(|subdir| -> ComicsResult<()> {
-                let subdir = subdir?;
                 remove_extra_layers(&subdir.path())?;
                 Ok(())
             })
@@ -90,11 +87,11 @@ pub(crate) fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
                 Issue => Issue,
                 BookWithNoIssue => BookWithNoIssue,
                 BookWithIssues | BookWithIssuesAndBonus => {
-                    return err_msg(format!("Failed to parse {:?}", dir))
+                    return err_msg(format!("Failed to parse {dir:?}"))
                 }
             }
         }
-        (1, _) => return err_msg(format!("Failed to parse {:?}", dir)),
+        (1, _) => return err_msg(format!("Failed to parse {dir:?}")),
         (_, 0) => {
             remove_layers_in_subdirs(subdirs)?;
             ParsedDir::BookWithIssues
@@ -120,14 +117,14 @@ fn remove_extra_layers(directory: &Path) -> ComicsResult<()> {
                     let old_file = file.path();
                     let new_file = &dir_to_remove
                         .parent()
-                        .expect("Should have a parent")
+                        .ok_or_comics_err("Should have a parent")?
                         .to_path_buf()
                         .join(PathBuf::from(
                             old_file
                                 .file_name()
-                                .expect("Should have a name")
+                                .ok_or_comics_err("Should have a name")?
                                 .to_str()
-                                .expect("Should have a valid name"),
+                                .ok_or_comics_err("Should have a valid name")?,
                         ));
                     println!("Moving {:#?} to {:#?}", &old_file, &new_file);
                     rename(old_file, new_file)?;

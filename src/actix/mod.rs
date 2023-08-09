@@ -2,7 +2,7 @@ mod archives;
 
 pub use archives::{get_archives, parse, parse_methods};
 
-macro_rules! failable_response (
+macro_rules! try_or_send_err (
     ($fn: block) => {
         match (|| -> ComicsResult<_> {
             $fn
@@ -16,4 +16,4 @@ macro_rules! failable_response (
     }
 );
 
-use failable_response;
+use try_or_send_err;

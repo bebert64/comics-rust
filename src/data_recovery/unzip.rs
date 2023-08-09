@@ -1,6 +1,10 @@
 use super::{Archive, ArchiveStatus};
 
-use crate::{comics_error::try_or_report, diesel_helpers::db, nas_path, schema, ComicsResult};
+use crate::{
+    comics_error::{try_or_report, ComicsResultOptionExtensions},
+    diesel_helpers::db,
+    nas_path, schema, ComicsResult,
+};
 
 use {
     diesel::prelude::*,
@@ -33,7 +37,10 @@ pub fn perform() -> ComicsResult<()> {
             let mut counter_file = 0;
             for i in 0..archive_zip.len() {
                 let mut file = archive_zip.by_index(i)?;
-                let outpath = outdir.join(file.enclosed_name().expect("Valid files"));
+                let outpath = outdir.join(
+                    file.enclosed_name()
+                        .ok_or_comics_err("Unvalid file inside archive")?,
+                );
                 if (*file.name()).ends_with('/') {
                     create_dir_all(&outpath)?;
                 } else {
