@@ -1,13 +1,10 @@
 use super::{Archive, ArchiveStatus};
 
-use crate::{
-    comics_error::{err_msg, try_or_report, ComicsResultOptionExtensions},
-    diesel_helpers::db,
-    nas_path, schema, ComicsResult,
-};
+use crate::{diesel_helpers::db, nas_path, schema};
 
 use {
     diesel::prelude::*,
+    don_error::{bail, err_msg, try_or_report, DonResult, DonResultOptionExtensions},
     lazy_static::lazy_static,
     std::{
         collections::HashMap,
@@ -16,7 +13,7 @@ use {
     },
 };
 
-pub fn perform() -> ComicsResult<()> {
+pub fn perform() -> DonResult<()> {
     // let mut db = db()?;
     // let archives = schema::archives::table
     //     .select(Archive::as_select())
@@ -60,21 +57,19 @@ pub(crate) enum ParsedDir {
     BookWithIssuesAndBonus,
 }
 
-pub(crate) fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
+pub(crate) fn parse_dir(dir: &Path) -> DonResult<ParsedDir> {
     let (files, subdirs): (Vec<_>, Vec<_>) = read_dir(dir)?
         .into_iter()
-        .map(|result| -> ComicsResult<_> { Ok(result?) })
-        .collect::<ComicsResult<Vec<_>>>()?
+        .map(|result| -> DonResult<_> { Ok(result?) })
+        .collect::<DonResult<Vec<_>>>()?
         .into_iter()
         .partition(|elem| elem.path().is_file());
 
-    fn remove_layers_in_subdirs(subdirs: Vec<std::fs::DirEntry>) -> ComicsResult<()> {
-        subdirs
-            .into_iter()
-            .try_for_each(|subdir| -> ComicsResult<()> {
-                remove_extra_layers(&subdir.path())?;
-                Ok(())
-            })
+    fn remove_layers_in_subdirs(subdirs: Vec<std::fs::DirEntry>) -> DonResult<()> {
+        subdirs.into_iter().try_for_each(|subdir| -> DonResult<()> {
+            remove_extra_layers(&subdir.path())?;
+            Ok(())
+        })
     }
 
     Ok(match (subdirs.len(), files.len()) {
@@ -87,11 +82,11 @@ pub(crate) fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
                 Issue => Issue,
                 BookWithNoIssue => BookWithNoIssue,
                 BookWithIssues | BookWithIssuesAndBonus => {
-                    return err_msg(format!("Failed to parse {dir:?}"))
+                    bail!(format!("Failed to parse {dir:?}"))
                 }
             }
         }
-        (1, _) => return err_msg(format!("Failed to parse {dir:?}")),
+        (1, _) => bail!(format!("Failed to parse {dir:?}")),
         (_, 0) => {
             remove_layers_in_subdirs(subdirs)?;
             ParsedDir::BookWithIssues
@@ -103,7 +98,7 @@ pub(crate) fn parse_dir(dir: &Path) -> ComicsResult<ParsedDir> {
     })
 }
 
-fn remove_extra_layers(directory: &Path) -> ComicsResult<()> {
+fn remove_extra_layers(directory: &Path) -> DonResult<()> {
     let mut loop_ctrl = true;
     while loop_ctrl {
         loop_ctrl = false;
@@ -117,14 +112,14 @@ fn remove_extra_layers(directory: &Path) -> ComicsResult<()> {
                     let old_file = file.path();
                     let new_file = &dir_to_remove
                         .parent()
-                        .ok_or_comics_err("Should have a parent")?
+                        .ok_or_don_err("Should have a parent")?
                         .to_path_buf()
                         .join(PathBuf::from(
                             old_file
                                 .file_name()
-                                .ok_or_comics_err("Should have a name")?
+                                .ok_or_don_err("Should have a name")?
                                 .to_str()
-                                .ok_or_comics_err("Should have a valid name")?,
+                                .ok_or_don_err("Should have a valid name")?,
                         ));
                     println!("Moving {:#?} to {:#?}", &old_file, &new_file);
                     rename(old_file, new_file)?;

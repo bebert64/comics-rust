@@ -6,7 +6,7 @@ use crate::{
         Archive, ArchiveStatus, ParsedDir,
     },
     diesel_helpers::db,
-    schema, ComicsResult,
+    schema, DonResult,
 };
 
 use {
@@ -60,13 +60,13 @@ async fn parse(req: HttpRequest) -> impl Responder {
             .get_results(&mut db)?;
         let parsed_archives = archives
             .into_iter()
-            .map(|archive| -> ComicsResult<_> {
+            .map(|archive| -> DonResult<_> {
                 Ok(ParsedArchive {
                     id: archive.id,
                     result: parse_dir(&archive.into_comics_dir()?)?,
                 })
             })
-            .collect::<ComicsResult<Vec<_>>>()?;
+            .collect::<DonResult<Vec<_>>>()?;
         let body = serde_json::to_string(&parsed_archives)?;
         Ok(HttpResponse::Ok()
             .content_type(ContentType::json())

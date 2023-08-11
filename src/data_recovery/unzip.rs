@@ -1,20 +1,17 @@
 use super::{Archive, ArchiveStatus};
 
-use crate::{
-    comics_error::{try_or_report, ComicsResultOptionExtensions},
-    diesel_helpers::db,
-    nas_path, schema, ComicsResult,
-};
+use crate::{diesel_helpers::db, nas_path, schema, DonResult};
 
 use {
     diesel::prelude::*,
+    don_error::{try_or_report, DonResultOptionExtensions},
     std::{
         fs::{create_dir_all, remove_dir_all, File},
         io::copy,
     },
 };
 
-pub fn perform() -> ComicsResult<()> {
+pub fn perform() -> DonResult<()> {
     let mut db = db()?;
     let archives = schema::archives::table
         .select(Archive::as_select())
@@ -39,7 +36,7 @@ pub fn perform() -> ComicsResult<()> {
                 let mut file = archive_zip.by_index(i)?;
                 let outpath = outdir.join(
                     file.enclosed_name()
-                        .ok_or_comics_err("Unvalid file inside archive")?,
+                        .ok_or_don_err("Unvalid file inside archive")?,
                 );
                 if (*file.name()).ends_with('/') {
                     create_dir_all(&outpath)?;

@@ -1,4 +1,4 @@
-use crate::ComicsResult;
+use crate::DonResult;
 
 use {
     diesel::{pg::PgConnection, prelude::*},
@@ -6,7 +6,7 @@ use {
     std::env,
 };
 
-pub(crate) fn db() -> ComicsResult<PgConnection> {
+pub(crate) fn db() -> DonResult<PgConnection> {
     dotenv()?;
     let db_url = env::var("DATABASE_URL")?;
     Ok(PgConnection::establish(&db_url)?)

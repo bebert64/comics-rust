@@ -4,7 +4,7 @@ pub use archives::{get_archives, parse, parse_methods};
 
 macro_rules! try_or_send_err (
     ($fn: block) => {
-        match (|| -> ComicsResult<_> {
+        match (|| -> DonResult<_> {
             $fn
         })() {
             Ok(responder) => responder,

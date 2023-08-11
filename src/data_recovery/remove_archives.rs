@@ -1,14 +1,15 @@
 use super::{Archive, ArchiveStatus};
 
-use crate::{
-    comics_error::{err_msg, try_or_report},
-    diesel_helpers::db,
-    nas_path, schema, ComicsResult,
+use crate::{diesel_helpers::db, nas_path, schema, DonResult};
+
+use {
+    diesel::prelude::*,
+    don_error::{bail, try_or_report},
+    std::fs::File,
+    walkdir::WalkDir,
 };
 
-use {diesel::prelude::*, std::fs::File, walkdir::WalkDir};
-
-pub fn perform() -> ComicsResult<()> {
+pub fn perform() -> DonResult<()> {
     let mut db = db()?;
     let archives = schema::archives::table
         .select(Archive::as_select())
@@ -31,7 +32,7 @@ pub fn perform() -> ComicsResult<()> {
                     diesel::update(schema::archives::table.find(archive.id))
                         .set(schema::archives::status.eq(ArchiveStatus::ToUnzip))
                         .execute(&mut db)?;
-                    return err_msg("Matching unzipped dir does not exists".to_owned());
+                    bail!("Matching unzipped dir does not exists");
                 }
 
                 let mut counter_file_archive = 0;

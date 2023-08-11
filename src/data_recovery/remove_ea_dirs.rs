@@ -1,6 +1,4 @@
-use crate::comics_error::try_or_report;
-
-use {std::fs::remove_dir_all, walkdir::WalkDir};
+use {don_error::try_or_report, std::fs::remove_dir_all, walkdir::WalkDir};
 
 pub fn perform(root_dir: &str) {
     println!("Removing ea_dirs in {root_dir}");

@@ -1,6 +1,9 @@
-use comics_rust::{data_recovery, ComicsResult};
+use comics_rust::data_recovery;
 
-use clap::{Parser, Subcommand};
+use {
+    clap::{Parser, Subcommand},
+    don_error::DonResult,
+};
 
 #[derive(Parser)]
 struct Cli {
@@ -23,7 +26,7 @@ enum Commands {
     Parse {},
 }
 
-fn main() -> ComicsResult<()> {
+fn main() -> DonResult<()> {
     let cli = Cli::parse();
     match &cli.command {
         Some(Commands::RemoveEaDirs { directory }) => data_recovery::remove_ea_dirs(&directory),
