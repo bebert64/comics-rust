@@ -4,8 +4,9 @@ use crate::{diesel_helpers::db, nas_path, schema};
 
 use {
     diesel::prelude::*,
-    don_error::{bail, err_msg, try_or_report, DonResult, DonResultOptionExtensions},
+    don_error::{bail, try_or_report, DonResult, DonResultOptionExtensions},
     lazy_static::lazy_static,
+    regex::Regex,
     std::{
         collections::HashMap,
         fs::{read_dir, remove_dir, rename},
@@ -13,51 +14,83 @@ use {
     },
 };
 
-pub fn perform() -> DonResult<()> {
-    // let mut db = db()?;
-    // let archives = schema::archives::table
-    //     .select(Archive::as_select())
-    //     .filter(schema::archives::status.eq(ArchiveStatus::ToParse))
-    //     .get_results(&mut db)?;
-    // let comics_root = nas_path(Some("Comics"))?;
-    // for archive in archives.into_iter() {
-    //     try_or_report(|| {
-    //         let parsed_dir = parse_dir(&archive.into_comics_dir()?);
-    //         Ok(())
-    //     })
-    // }
+pub fn perform(mode: &ParsingMode) -> DonResult<BookOrIssue> {
+    let mut db = db()?;
+    let archives = schema::archives::table
+        .select(Archive::as_select())
+        .filter(schema::archives::status.eq(ArchiveStatus::ToParse))
+        .get_results(&mut db)?;
+    let comics_root = nas_path(Some("Comics"))?;
+    for archive in archives.into_iter() {
+        try_or_report(|| parse_dir(&archive.into_comics_dir()?, mode))
+    }
     Ok(())
 }
 
+pub fn parse_dir(directory: &Path, mode: &ParsingMode) -> DonResult<BookOrIssue> {
+    use {DirectoryType::*, ParsingMode::*};
+    match (directory_type(directory)?, mode) {
+        (BookWithNoIssue, Title) => {
+            let regex = mode.into_regex();
+        }
+        _ => unimplemented!("Not yet implemented"),
+    }
+
+    let regex = mode.into_regex()?;
+
+    Ok(BookOrIssue::Book(Book {
+        name: BookName::FromName("()".to_owned()),
+        path: None,
+        book_type: BookType::GraphicNovel,
+        issues_sorted: None,
+        additional_files_sorted: None,
+    }))
+}
+
+#[derive(Debug, Serialize)]
 struct Issue {
     volume_name: String,
     number: usize,
     path: Option<PathBuf>,
 }
 
+#[derive(Debug, Serialize)]
 struct Book {
-    name: Option<String>,
+    name: BookName,
     path: Option<PathBuf>,
     book_type: BookType,
     issues_sorted: Option<Vec<Issue>>,
     additional_files_sorted: Option<Vec<PathBuf>>,
 }
 
+#[derive(Debug, Serialize)]
+enum BookName {
+    FromName(String),
+    FromVolume(NameFromVolume),
+}
+
+#[derive(Debug, Serialize)]
+struct NameFromVolume {
+    volume: String,
+    number: usize,
+    title: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
 enum BookType {
     GraphicNovel,
     SingleVolume,
     MultiVolume,
 }
 
-#[derive(Debug, Serialize, Clone)]
-pub(crate) enum ParsedDir {
-    Issue,
-    BookWithNoIssue,
-    BookWithIssues,
-    BookWithIssuesAndBonus,
+#[derive(Debug, Serialize)]
+pub(crate) enum BookOrIssue {
+    Issue(Issue),
+    Book(Book),
 }
 
-pub(crate) fn parse_dir(dir: &Path) -> DonResult<ParsedDir> {
+pub(crate) fn directory_type(dir: &Path) -> DonResult<DirectoryType> {
+    use DirectoryType::*;
     let (files, subdirs): (Vec<_>, Vec<_>) = read_dir(dir)?
         .into_iter()
         .map(|result| -> DonResult<_> { Ok(result?) })
@@ -73,12 +106,12 @@ pub(crate) fn parse_dir(dir: &Path) -> DonResult<ParsedDir> {
     }
 
     Ok(match (subdirs.len(), files.len()) {
-        (0, n) if n <= 50 => ParsedDir::Issue,
-        (0, _) => ParsedDir::BookWithNoIssue,
+        (0, n) if n <= 50 => Issue,
+        (0, _) => BookWithNoIssue,
         (1, 0) => {
             remove_extra_layers(dir)?;
-            use ParsedDir::*;
-            match parse_dir(dir)? {
+            use DirectoryType::*;
+            match directory_type(dir)? {
                 Issue => Issue,
                 BookWithNoIssue => BookWithNoIssue,
                 BookWithIssues | BookWithIssuesAndBonus => {
@@ -89,11 +122,11 @@ pub(crate) fn parse_dir(dir: &Path) -> DonResult<ParsedDir> {
         (1, _) => bail!(format!("Failed to parse {dir:?}")),
         (_, 0) => {
             remove_layers_in_subdirs(subdirs)?;
-            ParsedDir::BookWithIssues
+            BookWithIssues
         }
         (_, _) => {
             remove_layers_in_subdirs(subdirs)?;
-            ParsedDir::BookWithIssuesAndBonus
+            BookWithIssuesAndBonus
         }
     })
 }
@@ -135,4 +168,26 @@ fn remove_extra_layers(directory: &Path) -> DonResult<()> {
 lazy_static! {
     pub(crate) static ref PARSE_METHODS: HashMap<&'static str, &'static str> =
         HashMap::from([("test", "my_regex"), ("test_2", "my_other_regex")]);
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub(crate) enum DirectoryType {
+    Issue,
+    BookWithNoIssue,
+    BookWithIssues,
+    BookWithIssuesAndBonus,
+}
+
+#[derive(Deserialize, Debug)]
+pub enum ParsingMode {
+    Title,
+}
+
+impl ParsingMode {
+    fn into_regex(&self) -> DonResult<Regex> {
+        use ParsingMode::*;
+        Ok(match self {
+            Title => Regex::new("(.*")?,
+        })
+    }
 }

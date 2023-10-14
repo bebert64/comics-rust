@@ -10,7 +10,7 @@ pub use {
     unzip::perform as unzip,
 };
 
-pub(crate) use parse_existing_dir::ParsedDir;
+pub(crate) use parse_existing_dir::BookOrIssue;
 
 use crate::{nas_path, schema::archives, DonResult};
 

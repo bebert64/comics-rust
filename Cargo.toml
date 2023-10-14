@@ -18,6 +18,7 @@
 	don_error = { git = "ssh://git@github.com/bebert64/don_error.git" }
 	dotenv = "0.15"
 	lazy_static = "1"
+	regex = "1"
 	serde = "1"
 	serde_derive = "1"
 	serde_json = "1"
