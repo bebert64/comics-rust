@@ -32,9 +32,14 @@ fn main() -> DonResult<()> {
         Some(Commands::RemoveEaDirs { directory }) => data_recovery::remove_ea_dirs(&directory),
         Some(Commands::Find { directory }) => data_recovery::find_archives(&directory)?,
         Some(Commands::Unzip {}) => data_recovery::unzip()?,
-        Some(Commands::Parse {}) => data_recovery::parse_existing_dir()?,
+        // Some(Commands::Parse {}) => data_recovery::parse_existing_dir()?,
+        Some(Commands::Parse {}) => test(),
         Some(Commands::ClearArchives {}) => data_recovery::remove_archives()?,
         None => (),
     }
     Ok(())
+}
+
+fn test() {
+    let _ = comics_rust::db().unwrap();
 }
