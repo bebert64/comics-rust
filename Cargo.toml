@@ -15,8 +15,8 @@
 	diesel-derive-enum = { git = "https://github.com/Ten0/diesel-derive-enum/", branch = "support_auto_queryid_derive", features = [
 		"postgres",
 	] }
-	don_error = { git = "ssh://git@github.com/bebert64/don_error.git" }
-	dotenv = "0.15"
+	don_error = { path = "../libs/don_error" }
+	# don_error = { git = "ssh://git@github.com/bebert64/libs_rust/tree/main/don_error" }
 	lazy_static = "1"
 	regex = "1"
 	serde = "1"
