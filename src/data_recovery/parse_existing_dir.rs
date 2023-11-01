@@ -14,16 +14,17 @@ use {
     },
 };
 
-pub fn perform(mode: &ParsingMode) -> DonResult<BookOrIssue> {
+// pub fn perform(mode: &ParsingMode) -> DonResult<BookOrIssue> {
+pub fn perform(mode: &ParsingMode) -> DonResult<()> {
     let mut db = db()?;
     let archives = schema::archives::table
         .select(Archive::as_select())
         .filter(schema::archives::status.eq(ArchiveStatus::ToParse))
         .get_results(&mut db)?;
     let comics_root = nas_path(Some("Comics"))?;
-    for archive in archives.into_iter() {
-        try_or_report(|| parse_dir(&archive.into_comics_dir()?, mode))
-    }
+    // for archive in archives.into_iter() {
+    //     try_or_report(|| parse_dir(&archive.into_comics_dir()?, mode))
+    // }
     Ok(())
 }
 
@@ -48,14 +49,14 @@ pub fn parse_dir(directory: &Path, mode: &ParsingMode) -> DonResult<BookOrIssue>
 }
 
 #[derive(Debug, Serialize)]
-struct Issue {
+pub struct Issue {
     volume_name: String,
     number: usize,
     path: Option<PathBuf>,
 }
 
 #[derive(Debug, Serialize)]
-struct Book {
+pub struct Book {
     name: BookName,
     path: Option<PathBuf>,
     book_type: BookType,
@@ -84,7 +85,7 @@ enum BookType {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) enum BookOrIssue {
+pub enum BookOrIssue {
     Issue(Issue),
     Book(Book),
 }
