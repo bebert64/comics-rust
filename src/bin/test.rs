@@ -1,6 +1,6 @@
 use don_error::DonResult;
 
 fn main() -> DonResult<()> {
-    println!("Hello regex");
+    println!("Hello test");
     Ok(())
 }
