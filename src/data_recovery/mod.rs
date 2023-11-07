@@ -12,7 +12,7 @@ pub use {
 
 pub(crate) use parse_existing_dir::BookOrIssue;
 
-use crate::{nas_path, schema::archives, DonResult};
+use crate::{comics_root_path, schema::archives, DonResult};
 
 use {diesel::prelude::*, diesel_derive_enum::DbEnum, std::path::PathBuf};
 
@@ -35,7 +35,7 @@ pub(crate) enum ArchiveStatus {
 
 impl Archive {
     pub(crate) fn into_comics_dir(self: &Self) -> DonResult<PathBuf> {
-        let comics_root = nas_path(Some("Comics"))?;
+        let comics_root = comics_root_path(Some("Comics"))?;
         Ok(comics_root.join({
             let mut subdir = self.path.clone();
             subdir.truncate(self.path.len() - 4);

@@ -1,6 +1,6 @@
 use super::{Archive, ArchiveStatus};
 
-use crate::{diesel_helpers::db, nas_path, schema};
+use crate::{comics_root_path, diesel_helpers::db, schema};
 
 use {
     diesel::prelude::*,
@@ -21,7 +21,7 @@ pub fn perform(mode: &ParsingMode) -> DonResult<()> {
         .select(Archive::as_select())
         .filter(schema::archives::status.eq(ArchiveStatus::ToParse))
         .get_results(&mut db)?;
-    let comics_root = nas_path(Some("Comics"))?;
+    let comics_root = comics_root_path(Some("Comics"))?;
     // for archive in archives.into_iter() {
     //     try_or_report(|| parse_dir(&archive.into_comics_dir()?, mode))
     // }

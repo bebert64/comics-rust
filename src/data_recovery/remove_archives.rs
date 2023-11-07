@@ -1,6 +1,6 @@
 use super::{Archive, ArchiveStatus};
 
-use crate::{diesel_helpers::db, nas_path, schema, DonResult};
+use crate::{comics_root_path, diesel_helpers::db, schema, DonResult};
 
 use {
     diesel::prelude::*,
@@ -15,7 +15,7 @@ pub fn perform() -> DonResult<()> {
         .select(Archive::as_select())
         .filter(schema::archives::status.ne(ArchiveStatus::ToUnzip))
         .get_results(&mut db)?;
-    let comics_zipped_root = nas_path(Some("Comics_zipped"))?;
+    let comics_zipped_root = comics_root_path(Some("Comics_zipped"))?;
     println!("Clearing {} archives", archives.len());
     let total = archives.len();
     let mut counter = 0;

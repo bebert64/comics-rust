@@ -15,10 +15,10 @@ pub use diesel_helpers::db;
 #[macro_use]
 extern crate serde_derive;
 
-fn nas_path<'l>(subdir: Option<&'l str>) -> DonResult<PathBuf> {
-    let mut nas_path = PathBuf::from(var("NAS_PATH")?);
+fn comics_root_path<'l>(subdir: Option<&'l str>) -> DonResult<PathBuf> {
+    let mut comics_root_path = PathBuf::from(var("COMICS_ROOT_PATH")?);
     if let Some(subdir) = subdir {
-        nas_path.push(subdir);
+        comics_root_path.push(subdir);
     }
-    Ok(nas_path)
+    Ok(comics_root_path)
 }

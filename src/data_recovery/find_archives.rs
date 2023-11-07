@@ -1,6 +1,6 @@
 use super::ArchiveStatus;
 
-use crate::{diesel_helpers::db, nas_path, schema, DonResult};
+use crate::{comics_root_path, diesel_helpers::db, schema, DonResult};
 
 use {
     diesel::prelude::*,
@@ -9,7 +9,7 @@ use {
 };
 
 pub fn perform(dir: &str) -> DonResult<()> {
-    let comics_root = nas_path(Some("Comics_zipped"))?;
+    let comics_root = comics_root_path(Some("Comics_zipped"))?;
     let dir_path = comics_root.clone().join(dir);
     let walk_dir = WalkDir::new(dir_path).into_iter();
     for entry in walk_dir.filter_entry(|e| {
