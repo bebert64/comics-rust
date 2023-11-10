@@ -1,10 +1,11 @@
 use super::{Archive, ArchiveStatus};
 
-use crate::{comics_root_path, diesel_helpers::db, schema, DonResult};
+use crate::{comics_root_path, schema};
 
 use {
     diesel::prelude::*,
-    don_error::{try_or_report, DonResultOptionExtensions},
+    diesel_helpers::db,
+    don_error::{try_or_report, DonResult, DonResultOptionExtensions},
     std::{
         fs::{create_dir_all, remove_dir_all, File},
         io::copy,

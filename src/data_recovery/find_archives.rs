@@ -1,10 +1,10 @@
 use super::ArchiveStatus;
 
-use crate::{comics_root_path, diesel_helpers::db, schema, DonResult};
+use crate::{comics_root_path, schema};
 
 use {
     diesel::prelude::*,
-    don_error::{try_or_report, DonResultOptionExtensions},
+    don_error::{try_or_report, DonResult, DonResultOptionExtensions},
     walkdir::WalkDir,
 };
 
@@ -33,7 +33,7 @@ pub fn perform(dir: &str) -> DonResult<()> {
                                 .eq(relative_path.to_str().ok_or_don_err("Should have a path")?),
                             schema::archives::status.eq(ArchiveStatus::ToUnzip),
                         ))
-                        .execute(&mut db()?)?;
+                        .execute(&mut diesel_helpers::db()?)?;
                 }
             }
             Ok(())

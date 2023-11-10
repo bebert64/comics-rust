@@ -4,6 +4,10 @@
 	version = "0.1.0"
 
 [dependencies]
+	diesel_helpers = { path = "../libs/diesel_helpers" }
+	don_error = { path = "../libs/don_error" }
+	# don_error = { git = "ssh://git@github.com/bebert64/libs_rust/tree/main/don_error" }
+
 	actix-web = "4"
 	clap = { version = "4", features = ["derive", "cargo"] }
 	diesel = { git = "https://github.com/Ten0/diesel", branch = "for_stockly_main", features = [
@@ -15,8 +19,6 @@
 	diesel-derive-enum = { git = "https://github.com/Ten0/diesel-derive-enum/", branch = "support_auto_queryid_derive", features = [
 		"postgres",
 	] }
-	don_error = { path = "../libs/don_error" }
-	# don_error = { git = "ssh://git@github.com/bebert64/libs_rust/tree/main/don_error" }
 	lazy_static = "1"
 	regex = "1"
 	serde = "1"

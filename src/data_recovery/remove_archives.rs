@@ -1,10 +1,11 @@
 use super::{Archive, ArchiveStatus};
 
-use crate::{comics_root_path, diesel_helpers::db, schema, DonResult};
+use crate::{comics_root_path, schema};
 
 use {
     diesel::prelude::*,
-    don_error::{bail, try_or_report},
+    diesel_helpers::db,
+    don_error::{bail, try_or_report, DonResult},
     std::fs::File,
     walkdir::WalkDir,
 };

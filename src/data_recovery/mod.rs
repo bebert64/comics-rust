@@ -10,11 +10,11 @@ pub use {
     unzip::perform as unzip,
 };
 
-pub(crate) use parse_existing_dir::BookOrIssue;
+pub use parse_existing_dir::{BookOrIssue, ParsingMode};
 
-use crate::{comics_root_path, schema::archives, DonResult};
+use crate::{comics_root_path, schema::archives};
 
-use {diesel::prelude::*, diesel_derive_enum::DbEnum, std::path::PathBuf};
+use {diesel::prelude::*, diesel_derive_enum::DbEnum, don_error::DonResult, std::path::PathBuf};
 
 #[derive(Queryable, Selectable, Insertable, Serialize)]
 pub(crate) struct Archive {

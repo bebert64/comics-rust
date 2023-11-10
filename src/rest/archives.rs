@@ -5,13 +5,14 @@ use crate::{
         parse_existing_dir::{parse_dir, ParsingMode, PARSE_METHODS},
         Archive, ArchiveStatus, BookOrIssue,
     },
-    diesel_helpers::db,
-    schema, DonResult,
+    schema,
 };
 
 use {
     actix_web::{get, http::header::ContentType, HttpRequest, HttpResponse, Responder},
     diesel::prelude::*,
+    diesel_helpers::db,
+    don_error::DonResult,
 };
 
 #[derive(Deserialize, Debug)]

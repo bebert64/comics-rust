@@ -1,7 +1,6 @@
 #![allow(non_snake_case)]
 
 pub mod data_recovery;
-mod diesel_helpers;
 pub mod rest;
 mod schema;
 
@@ -9,8 +8,6 @@ use {
     don_error::DonResult,
     std::{env::var, path::PathBuf},
 };
-
-pub use diesel_helpers::db;
 
 #[macro_use]
 extern crate serde_derive;
