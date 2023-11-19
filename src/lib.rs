@@ -19,3 +19,7 @@ fn comics_root_path<'l>(subdir: Option<&'l str>) -> DonResult<PathBuf> {
     }
     Ok(comics_root_path)
 }
+
+pub fn test() -> DonResult<()> {
+    Ok(())
+}
