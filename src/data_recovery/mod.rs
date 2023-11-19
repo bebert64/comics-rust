@@ -1,14 +1,6 @@
-mod find_archives;
 pub(crate) mod parse_existing_dir;
-mod remove_archives;
-mod remove_ea_dirs;
-mod unzip;
 
-pub use {
-    find_archives::perform as find_archives, parse_existing_dir::perform as parse_existing_dir,
-    remove_archives::perform as remove_archives, remove_ea_dirs::perform as remove_ea_dirs,
-    unzip::perform as unzip,
-};
+pub use parse_existing_dir::perform as parse_existing_dir;
 
 pub use parse_existing_dir::{BookOrIssue, ParsingMode};
 
