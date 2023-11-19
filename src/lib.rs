@@ -1,6 +1,6 @@
 #![allow(non_snake_case)]
 
-pub mod data_recovery;
+pub(crate) mod data_recovery;
 pub mod rest;
 mod schema;
 
@@ -8,6 +8,8 @@ use {
     don_error::DonResult,
     std::{env::var, path::PathBuf},
 };
+
+pub use data_recovery::parse_existing_dir::{perform as parse_existing_dir, ParsingMode};
 
 #[macro_use]
 extern crate serde_derive;

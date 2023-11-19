@@ -1,11 +1,11 @@
-use super::{Archive, ArchiveStatus};
+use super::structs::*;
 
 use crate::{comics_root_path, schema};
 
 use {
     diesel::prelude::*,
     diesel_helpers::db,
-    don_error::{bail, try_or_report, DonResult, DonResultOptionExtensions},
+    don_error::*,
     lazy_static::lazy_static,
     regex::Regex,
     std::{
@@ -23,13 +23,16 @@ pub fn perform(mode: &ParsingMode) -> DonResult<()> {
         .filter(schema::archives::status.eq(ArchiveStatus::ToParse))
         .get_results(&mut db)?;
     let comics_root = comics_root_path(Some("Comics"))?;
-    // for archive in archives.into_iter() {
-    //     try_or_report(|| parse_dir(&archive.into_comics_dir()?, mode))
-    // }
+    for archive in archives.into_iter() {
+        try_or_report(|| {
+            let book_or_issue = parse_dir(&archive.into_comics_dir()?, mode)?;
+            Ok(())
+        })
+    }
     Ok(())
 }
 
-pub fn parse_dir(directory: &Path, mode: &ParsingMode) -> DonResult<BookOrIssue> {
+pub(crate) fn parse_dir(directory: &Path, mode: &ParsingMode) -> DonResult<BookOrIssue> {
     use {DirectoryType::*, ParsingMode::*};
     match (directory_type(directory)?, mode) {
         (BookWithNoIssue, Title) => {
@@ -47,48 +50,6 @@ pub fn parse_dir(directory: &Path, mode: &ParsingMode) -> DonResult<BookOrIssue>
         issues_sorted: None,
         additional_files_sorted: None,
     }))
-}
-
-#[derive(Debug, Serialize)]
-pub struct Issue {
-    volume_name: String,
-    number: usize,
-    path: Option<PathBuf>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Book {
-    name: BookName,
-    path: Option<PathBuf>,
-    book_type: BookType,
-    issues_sorted: Option<Vec<Issue>>,
-    additional_files_sorted: Option<Vec<PathBuf>>,
-}
-
-#[derive(Debug, Serialize)]
-enum BookName {
-    FromName(String),
-    FromVolume(NameFromVolume),
-}
-
-#[derive(Debug, Serialize)]
-struct NameFromVolume {
-    volume: String,
-    number: usize,
-    title: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-enum BookType {
-    GraphicNovel,
-    SingleVolume,
-    MultiVolume,
-}
-
-#[derive(Debug, Serialize)]
-pub enum BookOrIssue {
-    Issue(Issue),
-    Book(Book),
 }
 
 pub(crate) fn directory_type(dir: &Path) -> DonResult<DirectoryType> {
@@ -172,14 +133,6 @@ lazy_static! {
         HashMap::from([("test", "my_regex"), ("test_2", "my_other_regex")]);
 }
 
-#[derive(Debug, Serialize, Clone)]
-pub(crate) enum DirectoryType {
-    Issue,
-    BookWithNoIssue,
-    BookWithIssues,
-    BookWithIssuesAndBonus,
-}
-
 #[derive(Deserialize, Debug)]
 pub enum ParsingMode {
     Title,
@@ -189,7 +142,7 @@ impl ParsingMode {
     fn into_regex(&self) -> DonResult<Regex> {
         use ParsingMode::*;
         Ok(match self {
-            Title => Regex::new("(.*")?,
+            Title => Regex::new("(.*)")?,
         })
     }
 }

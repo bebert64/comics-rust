@@ -1,5 +1,3 @@
-use comics_rust::data_recovery;
-
 use {
     clap::{Parser, Subcommand},
     don_error::DonResult,
@@ -21,7 +19,7 @@ fn main() -> DonResult<()> {
     let cli = Cli::parse();
     match &cli.command {
         Some(Commands::Parse {}) => {
-            data_recovery::parse_existing_dir(&comics_rust::data_recovery::ParsingMode::Title)?
+            comics_rust::parse_existing_dir(&comics_rust::ParsingMode::Title)?
         }
         Some(Commands::Test {}) => comics_rust::test().unwrap(),
         None => (),
