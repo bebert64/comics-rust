@@ -9,12 +9,12 @@ use {
     std::{env::var, path::PathBuf},
 };
 
-pub use data_recovery::parse_existing_dir::{perform as parse_existing_dir, ParsingMode};
+pub use data_recovery::parse::{perform as parse_existing_dir, ParsingMode};
 
 #[macro_use]
 extern crate serde_derive;
 
-fn comics_root_path<'l>(subdir: Option<&'l str>) -> DonResult<PathBuf> {
+fn comics_root_path(subdir: Option<&str>) -> DonResult<PathBuf> {
     let mut comics_root_path = PathBuf::from(var("COMICS_ROOT_PATH")?);
     if let Some(subdir) = subdir {
         comics_root_path.push(subdir);
@@ -23,5 +23,10 @@ fn comics_root_path<'l>(subdir: Option<&'l str>) -> DonResult<PathBuf> {
 }
 
 pub fn test() -> DonResult<()> {
+    let book = data_recovery::parse::parse_dir(
+        &comics_root_path(Some("Fini/Crosswind 01-06"))?,
+        &ParsingMode::SingleVolumeWithIssues,
+    )?;
+    println!("{book:#?}");
     Ok(())
 }

@@ -2,8 +2,8 @@ use super::try_or_send_err;
 
 use crate::{
     data_recovery::{
-        parse_existing_dir::{parse_dir, ParsingMode, PARSE_METHODS},
-        Archive, ArchiveStatus, BookOrIssue,
+        parse::{parse_dir, ParsingMode, PARSE_METHODS},
+        structs::{Archive, ArchiveStatus, BookType},
     },
     schema,
 };
@@ -24,7 +24,7 @@ struct ParseQuery {
 #[derive(Serialize)]
 struct ParsedArchive {
     id: i32,
-    result: BookOrIssue,
+    result: BookType,
 }
 
 #[get("/api/archives")]
@@ -65,7 +65,7 @@ async fn parse(req: HttpRequest) -> impl Responder {
             .map(|archive| -> DonResult<_> {
                 Ok(ParsedArchive {
                     id: archive.id,
-                    result: parse_dir(&archive.into_comics_dir()?, &query.mode)?,
+                    result: parse_dir(&archive.to_comics_dir()?, &query.mode)?,
                 })
             })
             .collect::<DonResult<Vec<_>>>()?;
