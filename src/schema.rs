@@ -28,10 +28,11 @@ diesel::table! {
     books (id) {
         id -> Int4,
         title -> Nullable<Text>,
-        path -> Nullable<Text>,
+        path -> Text,
         book_type -> BookType,
         // Number of the TPB inside the volume. Ex: Batman v2 v03 => 3
         volume_number -> Nullable<Int4>,
+        volume -> Nullable<Int4>,
     }
 }
 
