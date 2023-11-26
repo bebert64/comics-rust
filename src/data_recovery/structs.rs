@@ -38,8 +38,8 @@ pub(crate) struct SingleVolume {
     pub(crate) volume: String,
     pub(crate) volume_number: Option<usize>,
     pub(crate) title: Option<String>,
-    pub(crate) issues_sorted: Option<Vec<Issue>>,
-    pub(crate) additional_files_sorted: Option<Vec<PathBuf>>,
+    pub(crate) issues_sorted: Vec<Issue>,
+    pub(crate) additional_files_sorted: Vec<PathBuf>,
     pub(crate) path: PathBuf,
 }
 
@@ -51,17 +51,10 @@ pub(crate) struct MultiVolume {
     pub(crate) path: PathBuf,
 }
 
-#[derive(Debug, Serialize, Clone)]
-pub(crate) enum DirectoryType {
-    Issue,
-    BookWithNoIssue,
-    BookWithIssues {
-        issues: Vec<PathBuf>,
-    },
-    BookWithIssuesAndBonus {
-        issues: Vec<PathBuf>,
-        additional_files: Vec<PathBuf>,
-    },
+#[derive(Debug, Serialize)]
+pub(crate) struct FilesAndSubdirs {
+    pub(crate) files: Vec<PathBuf>,
+    pub(crate) subdirs: Vec<PathBuf>,
 }
 
 #[derive(Queryable, Selectable, Serialize)]

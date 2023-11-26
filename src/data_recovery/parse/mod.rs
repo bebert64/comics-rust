@@ -70,56 +70,47 @@ pub fn perform(mode: String, dir_names: String) -> DonResult<()> {
                             ))
                             .returning(schema::books::id)
                             .get_only_result::<i32>(db)?;
-                        book.issues_sorted
-                            .map(|issues| -> DonResult<_> {
-                                Ok(issues.into_iter().enumerate().try_for_each(
-                                    |(position, issue)| -> DonResult<_> {
-                                        let issue_path = issue
-                                            .path
-                                            .map(|p: PathBuf| -> DonResult<_> {
-                                                Ok(p.to_str().ok_or_don_err("TODO")?.to_owned())
-                                            })
-                                            .transpose()?;
-                                        let issue_id = insert_into(schema::issues::table)
-                                            .values((
-                                                schema::issues::number.eq(issue.number as i32),
-                                                schema::issues::volume_id.eq(volume_id),
-                                                schema::issues::path.eq(issue_path),
-                                            ))
-                                            .returning(schema::issues::id)
-                                            .get_only_result::<i32>(db)?;
-                                        insert_into(schema::books__issues::table)
-                                            .values((
-                                                schema::books__issues::book_id.eq(book_id),
-                                                schema::books__issues::issue_id.eq(issue_id),
-                                                schema::books__issues::position.eq(position as i32),
-                                            ))
-                                            .execute(db)?;
-                                        Ok(())
-                                    },
-                                )?)
-                            })
-                            .transpose()?;
+                        book.issues_sorted.into_iter().enumerate().try_for_each(
+                            |(position, issue)| -> DonResult<_> {
+                                let issue_path = issue
+                                    .path
+                                    .map(|p: PathBuf| -> DonResult<_> {
+                                        Ok(p.to_str().ok_or_don_err("TODO")?.to_owned())
+                                    })
+                                    .transpose()?;
+                                let issue_id = insert_into(schema::issues::table)
+                                    .values((
+                                        schema::issues::number.eq(issue.number as i32),
+                                        schema::issues::volume_id.eq(volume_id),
+                                        schema::issues::path.eq(issue_path),
+                                    ))
+                                    .returning(schema::issues::id)
+                                    .get_only_result::<i32>(db)?;
+                                insert_into(schema::books__issues::table)
+                                    .values((
+                                        schema::books__issues::book_id.eq(book_id),
+                                        schema::books__issues::issue_id.eq(issue_id),
+                                        schema::books__issues::position.eq(position as i32),
+                                    ))
+                                    .execute(db)?;
+                                Ok(())
+                            },
+                        )?;
                         book.additional_files_sorted
-                            .map(|files| -> DonResult<_> {
-                                Ok(files.into_iter().enumerate().try_for_each(
-                                    |(position, file)| -> DonResult<_> {
-                                        let file_path = file.to_str().ok_or_don_err("TODO")?;
-                                        insert_into(schema::books__additional_files::table)
-                                            .values((
-                                                schema::books__additional_files::book_id
-                                                    .eq(book_id),
-                                                schema::books__additional_files::file_path
-                                                    .eq(file_path),
-                                                schema::books__additional_files::position
-                                                    .eq(position as i32),
-                                            ))
-                                            .execute(db)?;
-                                        Ok(())
-                                    },
-                                )?)
-                            })
-                            .transpose()?;
+                            .into_iter()
+                            .enumerate()
+                            .try_for_each(|(position, file)| -> DonResult<_> {
+                                let file_path = file.to_str().ok_or_don_err("TODO")?;
+                                insert_into(schema::books__additional_files::table)
+                                    .values((
+                                        schema::books__additional_files::book_id.eq(book_id),
+                                        schema::books__additional_files::file_path.eq(file_path),
+                                        schema::books__additional_files::position
+                                            .eq(position as i32),
+                                    ))
+                                    .execute(db)?;
+                                Ok(())
+                            })?;
                     }
                 };
                 update(schema::archives::table.find(archive_id))
@@ -141,315 +132,154 @@ pub fn perform(mode: String, dir_names: String) -> DonResult<()> {
 }
 
 pub(crate) fn parse_dir(directory: &Path, mode: ParsingMode) -> DonResult<BookTypeOther> {
+    let FilesAndSubdirs { files, subdirs } = files_and_subdirs_cleaned_and_sorted(directory)?;
     match mode {
-        ParsingMode::GraphicNovel => match directory_type(directory)? {
-            DirectoryType::BookWithNoIssue => {
-                let parsed_data = parsable::Title::parse(directory)?;
-                Ok(BookTypeOther::GraphicNovel(GraphicNovel {
-                    title: parsed_data.title,
-                    path: directory.into(),
-                }))
-            }
-            DirectoryType::Issue
-            | DirectoryType::BookWithIssues { .. }
-            | DirectoryType::BookWithIssuesAndBonus { .. } => {
+        ParsingMode::GraphicNovel => {
+            if !subdirs.is_empty() || files.len() < 50 {
                 bail!(format!(
                     "Parsing mode GraphicNovel should only be used \
                     on dirs with no subdir and more than 50 pages (dir name: {})",
                     file_name(directory)?,
                 ))
             }
-        },
-        ParsingMode::SingleVolume => match directory_type(directory)? {
-            DirectoryType::BookWithNoIssue => {
-                let parsed_volume = parsable::Volume::parse(directory)?;
-                Ok(BookTypeOther::SingleVolume(SingleVolume {
-                    volume: parsed_volume.volume,
-                    volume_number: parsed_volume.volume_number,
-                    title: None,
-                    issues_sorted: None,
-                    additional_files_sorted: None,
-                    path: directory.into(),
-                }))
-            }
-            DirectoryType::BookWithIssues { mut issues } => {
-                let parsed_volume = parsable::Volume::parse(directory)?;
-                Ok(BookTypeOther::SingleVolume(SingleVolume {
-                    issues_sorted: {
-                        issues.sort_unstable();
-                        Some(
-                            issues
-                                .into_iter()
-                                .map(|issue_dir| {
-                                    let parsed_issue = parsable::Issue::parse(&issue_dir)?;
-                                    if parsed_issue.volume.is_some_and(|volume| {
-                                        volume != parsed_volume.volume
-                                    }) {
-                                        bail!(format!(
-                                            "Issue {:#?} has a different volume than the one in the parent dir",
-                                            issue_dir
-                                        ))
-                                    }
-                                    Ok(Issue {
-                                        volume: parsed_volume.volume.clone(),
-                                        number: parsed_issue.number,
-                                        path: Some(issue_dir),
-                                    })
-                                })
-                                .collect::<DonResult<Vec<_>>>()?,
-                        )
-                    },
-                    volume: parsed_volume.volume,
-                    volume_number: parsed_volume.volume_number,
-                    title: None,
-                    additional_files_sorted: None,
-                    path: directory.into(),
-                }))
-            }
-            DirectoryType::BookWithIssuesAndBonus { .. } => {
-                unimplemented!("TODO")
-            }
-            DirectoryType::Issue => {
+            let parsed_data = parsable::Title::parse(directory)?;
+            Ok(BookTypeOther::GraphicNovel(GraphicNovel {
+                title: parsed_data.title,
+                path: directory.into(),
+            }))
+        }
+        ParsingMode::SingleVolume => {
+            let parsed_volume = parsable::Volume::parse(directory)?;
+            Ok(BookTypeOther::SingleVolume(SingleVolume {
+                issues_sorted: issues_from_subdirs(subdirs, &parsed_volume.volume, None)?,
+                additional_files_sorted: files,
+                volume: parsed_volume.volume,
+                volume_number: parsed_volume.volume_number,
+                title: None,
+                path: directory.into(),
+            }))
+        }
+        ParsingMode::SingleVolumeWithIssues => {
+            if subdirs.is_empty() {
                 bail!(format!(
-                    "Parsing mode SingleVolume cannot be used \
-                    on dirs with no subdir and less than 50 pages (dir name: {})",
+                    "Parsing mode SingleVolumeWithIssues should only be used \
+                    on dirs with sub-directories (dir name: {})",
                     file_name(directory)?,
                 ))
             }
-        },
-        ParsingMode::SingleVolumeWithIssues => match directory_type(directory)? {
-            DirectoryType::BookWithIssues { issues } => {
-                let parsed_volume = parsable::VolumeWithIssues::parse(directory)?;
-                Ok(BookTypeOther::SingleVolume(SingleVolume {
-                    volume: parsed_volume.volume.clone(),
-                    volume_number: parsed_volume.volume_number,
-                    title: None,
-                    issues_sorted: Some(issues_sorted(issues, parsed_volume)?),
-                    additional_files_sorted: None,
-                    path: directory.into(),
-                }))
-            }
-            DirectoryType::BookWithIssuesAndBonus {
-                issues,
-                mut additional_files,
-            } => {
-                let parsed_volume = parsable::VolumeWithIssues::parse(directory)?;
-                Ok(BookTypeOther::SingleVolume(SingleVolume {
-                    volume: parsed_volume.volume.clone(),
-                    volume_number: parsed_volume.volume_number,
-                    title: None,
-                    issues_sorted: Some(issues_sorted(issues, parsed_volume)?),
-                    additional_files_sorted: {
-                        additional_files.sort_unstable();
-                        Some(additional_files)
-                    },
-                    path: directory.into(),
-                }))
-            }
-            _ => bail!(format!(
-                "Parsing mode SingleVolumeWithIssues should only be used \
-                on dirs with sub-directories (dir name: {})",
-                file_name(directory)?,
-            )),
-        },
-        ParsingMode::SingleVolumeWithTitle => match directory_type(directory)? {
-            DirectoryType::BookWithNoIssue => {
-                let parsed_volume = parsable::VolumeWithTitle::parse(directory)?;
-                Ok(BookTypeOther::SingleVolume(SingleVolume {
-                    volume: parsed_volume.volume,
-                    volume_number: parsed_volume.volume_number,
-                    title: Some(parsed_volume.title),
-                    issues_sorted: None,
-                    additional_files_sorted: None,
-                    path: directory.into(),
-                }))
-            }
-            DirectoryType::BookWithIssues { mut issues } => {
-                let parsed_volume = parsable::VolumeWithTitle::parse(directory)?;
-                Ok(BookTypeOther::SingleVolume(SingleVolume {
-                    issues_sorted: {
-                        issues.sort_unstable();
-                        Some(
-                            issues
-                                .into_iter()
-                                .map(|issue_dir| {
-                                    let parsed_issue = parsable::Issue::parse(&issue_dir)?;
-                                    if parsed_issue.volume.is_some_and(|volume| {
-                                        volume != parsed_volume.volume
-                                    }) {
-                                        bail!(format!(
-                                            "Issue {:#?} has a different volume than the one in the parent dir",
-                                            issue_dir
-                                        ))
-                                    }
-                                    Ok(Issue {
-                                        volume: parsed_volume.volume.clone(),
-                                        number: parsed_issue.number,
-                                        path: Some(issue_dir),
-                                    })
-                                })
-                                .collect::<DonResult<Vec<_>>>()?,
-                        )
-                    },
-                    volume: parsed_volume.volume,
-                    volume_number: parsed_volume.volume_number,
-                    title: Some(parsed_volume.title),
-                    additional_files_sorted: None,
-                    path: directory.into(),
-                }))
-            }
-            DirectoryType::BookWithIssuesAndBonus {
-                mut issues,
-                mut additional_files,
-            } => {
-                let parsed_volume = parsable::VolumeWithIssues::parse(directory)?;
-                Ok(BookTypeOther::SingleVolume(SingleVolume {
-                    issues_sorted: {
-                        issues.sort_unstable();
-                        Some(
-                            issues
-                                .into_iter()
-                                .map(|issue_dir| {
-                                    let parsed_issue = parsable::Issue::parse(&issue_dir)?;
-                                    if parsed_issue.volume.is_some_and(|volume| {
-                                        volume != parsed_volume.volume
-                                    }) {
-                                        bail!(format!(
-                                            "Issue {:#?} has a different volume than the one in the parent dir",
-                                            issue_dir
-                                        ))
-                                    }
-                                    Ok(Issue {
-                                        volume: parsed_volume.volume.clone(),
-                                        number: parsed_issue.number,
-                                        path: Some(issue_dir),
-                                    })
-                                })
-                                .collect::<DonResult<Vec<_>>>()?,
-                        )
-                    },
-                    volume: parsed_volume.volume,
-                    volume_number: parsed_volume.volume_number,
-                    title: None,
-                    additional_files_sorted: {
-                        additional_files.sort_unstable();
-                        Some(additional_files)
-                    },
-                    path: directory.into(),
-                }))
-            }
-            DirectoryType::Issue => {
-                bail!(format!(
-                    "Parsing mode SingleVolumeWithTitle cannot be used \
-                    on dirs with no subdir and less than 50 pages (dir name: {})",
-                    file_name(directory)?,
-                ))
-            }
-        },
+            let parsed_volume = parsable::VolumeWithIssues::parse(directory)?;
+            Ok(BookTypeOther::SingleVolume(SingleVolume {
+                volume: parsed_volume.volume.clone(),
+                volume_number: parsed_volume.volume_number,
+                title: None,
+                issues_sorted: issues_from_subdirs(
+                    subdirs,
+                    &parsed_volume.volume,
+                    Some((parsed_volume.first_issue, parsed_volume.last_issue)),
+                )?,
+                additional_files_sorted: files,
+                path: directory.into(),
+            }))
+        }
+        ParsingMode::SingleVolumeWithTitle => {
+            let parsed_volume = parsable::VolumeWithTitle::parse(directory)?;
+            Ok(BookTypeOther::SingleVolume(SingleVolume {
+                issues_sorted: issues_from_subdirs(subdirs, &parsed_volume.volume, None)?,
+                volume: parsed_volume.volume,
+                volume_number: parsed_volume.volume_number,
+                title: Some(parsed_volume.title),
+                additional_files_sorted: files,
+                path: directory.into(),
+            }))
+        }
     }
 }
 
-fn issues_sorted(
-    issue_dirs: Vec<PathBuf>,
-    parsed_volume: parsable::VolumeWithIssues,
+pub fn file_name(directory: &Path) -> DonResult<&str> {
+    Ok(directory
+        .file_name()
+        .ok_or_don_err("directory should have a file_name")?
+        .to_str()
+        .ok_or_don_err("directory should have a valid OsStr name")?)
+}
+
+fn issues_from_subdirs(
+    subdirs: Vec<PathBuf>,
+    volume_from_parent: &str,
+    first_and_last_issue: Option<(usize, usize)>,
 ) -> DonResult<Vec<Issue>> {
-    let mut issue_dirs_by_issue_number = issue_dirs
+    let issues = subdirs
         .into_iter()
-        .map(|issue_dir| {
-            let parsed_issue = parsable::Issue::parse(&issue_dir)?;
+        .map(|subdir| {
+            let parsed_issue = parsable::Issue::parse(&subdir)?;
             if parsed_issue
                 .volume
-                .is_some_and(|volume| volume != parsed_volume.volume)
+                .as_ref()
+                .is_some_and(|volume| volume != volume_from_parent)
             {
                 bail!(format!(
                     "Issue {:#?} has a different volume than the one in the parent dir",
-                    issue_dir
+                    subdir
                 ))
             }
-            Ok((parsed_issue.number, issue_dir))
-        })
-        .collect::<DonResult<HashMap<_, _>>>()?;
-    let issues_sorted = {
-        let mut issues = (parsed_volume.first_issue..parsed_volume.last_issue + 1)
-            .map(|issue_index| {
-                let issue_dir = issue_dirs_by_issue_number
-                    .remove(&issue_index)
-                    .ok_or_don_err(format!("Issue {} not found", issue_index))?;
-                Ok(Issue {
-                    volume: parsed_volume.volume.clone(),
-                    number: issue_index,
-                    path: Some(issue_dir),
-                })
+            Ok(Issue {
+                volume: parsed_issue.volume.unwrap_or(volume_from_parent.to_owned()),
+                number: parsed_issue.number,
+                path: Some(subdir),
             })
-            .collect::<DonResult<Vec<_>>>()?;
-        issues.sort_unstable_by_key(|issue| issue.number);
-        if !issue_dirs_by_issue_number.is_empty() {
-            bail!(format!(
-                "Found extra issues: {:#?}",
-                issue_dirs_by_issue_number
-            ))
+        })
+        .collect::<DonResult<Vec<_>>>()?;
+    if let Some((first_issue, last_issue)) = first_and_last_issue {
+        let mut issues_by_number = issues
+            .iter()
+            .map(|issue| (issue.number, issue))
+            .collect::<HashMap<_, _>>();
+        (first_issue..last_issue + 1).try_for_each(|issue_number| -> DonResult<()> {
+            issues_by_number
+                .remove(&issue_number)
+                .ok_or_don_err(format!("Issue {} not found", issue_number))?;
+            Ok(())
+        })?;
+        if !issues_by_number.is_empty() {
+            bail!(format!("Found extra issues: {:#?}", issues_by_number))
         }
-        issues
-    };
-    Ok(issues_sorted)
+    }
+    Ok(issues)
 }
 
-fn directory_type(dir: &Path) -> DonResult<DirectoryType> {
-    use DirectoryType::*;
-    let (files, subdirs): (Vec<_>, Vec<_>) = read_dir(dir)?
-        .map(|result| -> DonResult<_> { Ok(result?) })
+fn files_and_subdirs_cleaned_and_sorted(dir: &Path) -> DonResult<FilesAndSubdirs> {
+    remove_extra_layers(dir)?;
+    let files_and_subdirs = files_and_subdirs(dir)?;
+    files_and_subdirs
+        .subdirs
+        .iter()
+        .try_for_each(|subdir| -> DonResult<()> {
+            remove_extra_layers(&subdir)?;
+            Ok(())
+        })?;
+    Ok(files_and_subdirs)
+}
+fn files_and_subdirs(dir: &Path) -> DonResult<FilesAndSubdirs> {
+    let (mut files, mut subdirs) = read_dir(dir)?
+        .map(|result| -> DonResult<_> { Ok(result?.path()) })
         .collect::<DonResult<Vec<_>>>()?
         .into_iter()
-        .partition(|elem| elem.path().is_file());
-
-    fn remove_layers_in_subdirs(subdirs: &Vec<std::fs::DirEntry>) -> DonResult<()> {
-        subdirs.into_iter().try_for_each(|subdir| -> DonResult<()> {
-            remove_extra_layers(&subdir.path())?;
-            Ok(())
-        })
-    }
-
-    Ok(match (subdirs.len(), files.len()) {
-        (0, n) if n <= 50 => Issue,
-        (0, _) => BookWithNoIssue,
-        (1, 0) => {
-            remove_extra_layers(dir)?;
-            use DirectoryType::*;
-            match directory_type(dir)? {
-                Issue => Issue,
-                BookWithNoIssue => BookWithNoIssue,
-                // If there's only one subdir, it should itself contains only images
-                BookWithIssues { .. } | BookWithIssuesAndBonus { .. } => {
-                    bail!(format!("Failed to parse {dir:?}"))
-                }
-            }
-        }
-        (1, _) => bail!(format!("Failed to parse {dir:?}")),
-        (_, 0) => {
-            remove_layers_in_subdirs(&subdirs)?;
-            BookWithIssues {
-                issues: subdirs.into_iter().map(|subdir| subdir.path()).collect(),
-            }
-        }
-        (_, _) => {
-            remove_layers_in_subdirs(&subdirs)?;
-            BookWithIssuesAndBonus {
-                issues: subdirs.into_iter().map(|subdir| subdir.path()).collect(),
-                additional_files: files.into_iter().map(|file| file.path()).collect(),
-            }
-        }
-    })
+        .partition::<Vec<_>, _>(|path| path.is_file());
+    files.sort_unstable();
+    subdirs.sort_unstable();
+    Ok(FilesAndSubdirs { files, subdirs })
 }
-
+// If directory contains only one subdir, move all files from this subdir to the parent
+// directory remove the subdir and repeat until there's either no subdir or more than one
+// subdir
 fn remove_extra_layers(directory: &Path) -> DonResult<()> {
     let mut loop_ctrl = true;
     while loop_ctrl {
         loop_ctrl = false;
-        let mut files_in_entry = read_dir(directory)?.peekable();
-        if let Some(first_file) = files_in_entry.next() {
-            let first_file = first_file?.path();
-            if first_file.is_dir() && files_in_entry.next().is_none() {
-                let dir_to_remove = first_file;
+        let FilesAndSubdirs { files, mut subdirs } = files_and_subdirs(directory)?;
+        match (subdirs.len(), files.len()) {
+            (1, 0) => {
+                let dir_to_remove = subdirs.pop().ok_or_don_err("Just checked not empty")?;
                 for file in read_dir(&dir_to_remove)? {
                     let file = file?;
                     let old_file = file.path();
@@ -470,15 +300,9 @@ fn remove_extra_layers(directory: &Path) -> DonResult<()> {
                 remove_dir(&dir_to_remove)?;
                 loop_ctrl = true;
             }
+            (1, _) => bail!("Should never have a single subdir with files"),
+            _ => (),
         }
     }
     Ok(())
-}
-
-pub fn file_name(directory: &Path) -> DonResult<&str> {
-    Ok(directory
-        .file_name()
-        .ok_or_don_err("directory should have a file_name")?
-        .to_str()
-        .ok_or_don_err("directory should have a valid OsStr name")?)
 }
