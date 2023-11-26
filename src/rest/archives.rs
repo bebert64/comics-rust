@@ -2,8 +2,8 @@ use super::try_or_send_err;
 
 use crate::{
     data_recovery::{
-        parse::{parse_dir, ParsingMode, PARSE_METHODS},
-        structs::{Archive, ArchiveStatus, BookType},
+        parse::{parse_dir, ParsingMode},
+        structs::{Archive, ArchiveStatus, BookTypeOther},
     },
     schema,
 };
@@ -13,6 +13,8 @@ use {
     diesel::prelude::*,
     diesel_helpers::db,
     don_error::DonResult,
+    lazy_static::lazy_static,
+    std::collections::HashMap,
 };
 
 #[derive(Deserialize, Debug)]
@@ -24,7 +26,12 @@ struct ParseQuery {
 #[derive(Serialize)]
 struct ParsedArchive {
     id: i32,
-    result: BookType,
+    result: BookTypeOther,
+}
+
+lazy_static! {
+    pub(crate) static ref PARSE_METHODS: HashMap<&'static str, &'static str> =
+        HashMap::from([("test", "my_regex"), ("test_2", "my_other_regex")]);
 }
 
 #[get("/api/archives")]
@@ -65,7 +72,7 @@ async fn parse(req: HttpRequest) -> impl Responder {
             .map(|archive| -> DonResult<_> {
                 Ok(ParsedArchive {
                     id: archive.id,
-                    result: parse_dir(&archive.to_comics_dir()?, &query.mode)?,
+                    result: parse_dir(&archive.to_comics_dir()?, query.mode)?,
                 })
             })
             .collect::<DonResult<Vec<_>>>()?;

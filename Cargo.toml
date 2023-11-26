@@ -1,6 +1,6 @@
 [package]
 	edition = "2021"
-	name = "comics_rust"
+	name = "comics"
 	version = "0.1.0"
 
 [dependencies]
@@ -19,6 +19,7 @@
 	diesel-derive-enum = { git = "https://github.com/Ten0/diesel-derive-enum/", branch = "support_auto_queryid_derive", features = [
 		"postgres",
 	] }
+	dotenv = "0.15"
 	lazy_static = "1"
 	regex = "1"
 	serde = "1"

@@ -22,11 +22,24 @@ fn comics_root_path(subdir: Option<&str>) -> DonResult<PathBuf> {
     Ok(comics_root_path)
 }
 
-pub fn test() -> DonResult<()> {
-    let book = data_recovery::parse::parse_dir(
-        &comics_root_path(Some("Fini/Crosswind 01-06"))?,
-        &ParsingMode::SingleVolumeWithIssues,
-    )?;
-    println!("{book:#?}");
+pub fn test(files: String) -> DonResult<()> {
+    println!("original: {files:?}");
+    let split = files.split("'").collect::<Vec<_>>();
+    println!("split: {split:?}");
+    let files = split
+        .into_iter()
+        .filter(|s| !s.trim().is_empty())
+        .collect::<Vec<_>>();
+    println!("files: {files:?}");
+    // if split.len() != 3 {
+    //     panic!("Wrong number of quotes")
+    // }
+    // let files_inner = split.get(1).clone();
+    // println!("inner: {files_inner:?}");
+    // let book = data_recovery::parse::parse_dir(
+    //     &comics_root_path(Some("Fini/Crosswind 01-06"))?,
+    //     ParsingMode::SingleVolumeWithIssues,
+    // )?;
+    // println!("{book:#?}");
     Ok(())
 }

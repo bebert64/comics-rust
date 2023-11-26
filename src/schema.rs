@@ -4,10 +4,6 @@ pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "archive_status"))]
     pub struct ArchiveStatus;
-
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
-    #[diesel(postgres_type(name = "book_type"))]
-    pub struct BookType;
 }
 
 diesel::table! {
@@ -22,17 +18,13 @@ diesel::table! {
 }
 
 diesel::table! {
-    use diesel::sql_types::*;
-    use super::sql_types::BookType;
-
     books (id) {
         id -> Int4,
         title -> Nullable<Text>,
-        path -> Text,
-        book_type -> BookType,
-        // Number of the TPB inside the volume. Ex: Batman v2 v03 => 3
+        volume_id -> Nullable<Int4>,
+        /// Number of the TPB inside the volume. Ex: Batman v2 v03 => 3
         volume_number -> Nullable<Int4>,
-        volume -> Nullable<Int4>,
+        path -> Text,
     }
 }
 
@@ -86,6 +78,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(books -> volumes (volume_id));
 diesel::joinable!(books__additional_files -> books (book_id));
 diesel::joinable!(books__issues -> books (book_id));
 diesel::joinable!(books__issues -> issues (issue_id));

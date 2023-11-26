@@ -1,4 +1,4 @@
-use comics_rust::rest::{get_archives, parse, parse_methods};
+use comics::rest::{get_archives, parse, parse_methods};
 
 use actix_web::{App, HttpServer};
 

@@ -3,17 +3,20 @@ Correct VolumeAndIssue
     move additional files from subdir not in issues (if flag present in cli args) to root and 
         add them as additional_files
 
-Migration to reproduce schema's manual modifications + db check
-    volume_number NOT NULL => type = SingleVolume
-    type = GraphicNovel => title NOT NULL
-    ...
+Migration
+    reproduce schema's manual modifications
+    db check
+        volume_number NOT NULL => type = SingleVolume
+        type = GraphicNovel => title NOT NULL
+        ...
+    add column "verified" for each archive, default false
 Write in db info from parsed dir
-Add db column "verified"
+Move to other folder
+    script to revert all while in test? Maybe cut/paste all is enough
 
-integrate with ranger
-    quick script that build a vec from input from ranger and display it
-    run script / write in db with verified = false
-    move dirs already handled to other dir with exact same struct
+
+
+
 
 Lib NAS
     is mounted ?

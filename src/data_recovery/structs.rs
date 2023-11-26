@@ -5,12 +5,20 @@ use crate::{comics_root_path, schema::archives};
 use {diesel::prelude::*, don_error::*, std::path::PathBuf};
 
 #[derive(Debug, Serialize)]
-pub(crate) enum BookType {
+pub(crate) enum BookTypeOther {
     // Issue(Issue),
     GraphicNovel(GraphicNovel),
     SingleVolume(SingleVolume),
     // MultiVolume(MultiVolume),
 }
+
+// #[derive(Debug, DbEnum, Serialize)]
+// pub(crate) enum BookType {
+//     // Issue(Issue),
+//     GraphicNovel,
+//     SingleVolume,
+//     // MultiVolume(MultiVolume),
+// }
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Issue {
@@ -47,8 +55,13 @@ pub(crate) struct MultiVolume {
 pub(crate) enum DirectoryType {
     Issue,
     BookWithNoIssue,
-    BookWithIssues,
-    BookWithIssuesAndBonus,
+    BookWithIssues {
+        issues: Vec<PathBuf>,
+    },
+    BookWithIssuesAndBonus {
+        issues: Vec<PathBuf>,
+        additional_files: Vec<PathBuf>,
+    },
 }
 
 #[derive(Queryable, Selectable, Serialize)]
