@@ -1,6 +1,5 @@
 mod parsable;
 
-use parsable::Parsable;
 pub use parsable::ParsingMode;
 
 use super::structs::*;
@@ -38,81 +37,98 @@ pub fn perform(mode: String, dir_names: String) -> DonResult<()> {
                     .ok_or_don_err("Path should be displayable as str")?;
                 let archive_id = schema::archives::table
                     .select(schema::archives::id)
-                    .filter(schema::archives::path.like(format!("{}.%", dir_relative_path)))
+                    .filter(schema::archives::path.eq(dir_relative_path))
                     .get_only_result::<i32>(db)?;
                 let book = parse_dir(&dir_path, mode)?;
                 println!("Parsed {dir_name} (id: {archive_id}): {book:#?}");
-                match book {
-                    BookTypeOther::GraphicNovel(graphic_novel) => {
-                        insert_into(schema::books::table)
-                            .values((
-                                schema::books::title.eq(graphic_novel.title),
-                                schema::books::path
-                                    .eq(graphic_novel.path.to_str().ok_or_don_err("TODO")?),
-                            ))
-                            .execute(db)?;
-                    }
-                    BookTypeOther::SingleVolume(book) => {
-                        let volume_id = insert_into(schema::volumes::table)
-                            .values(schema::volumes::name.eq(&book.volume))
+                let volume_id = book
+                    .volume
+                    .map(|volume| {
+                        insert_into(schema::volumes::table)
+                            .values(schema::volumes::name.eq(volume.clone()))
                             .on_conflict(schema::volumes::name)
                             .do_update()
-                            .set(schema::volumes::name.eq(&book.volume))
+                            .set(schema::volumes::name.eq(volume.clone()))
                             .returning(schema::volumes::id)
-                            .get_only_result::<i32>(db)?;
-                        let book_id = insert_into(schema::books::table)
+                            .get_only_result::<i32>(db)
+                    })
+                    .transpose()?;
+                let book_id = insert_into(schema::books::table)
+                    .values((
+                        schema::books::title.eq(book.title),
+                        schema::books::volume_id.eq(volume_id),
+                        schema::books::volume_number.eq(book.volume_number.map(|n| n as i32)),
+                        schema::books::path.eq(book.path.to_str().ok_or_don_err("TODO")?),
+                    ))
+                    .returning(schema::books::id)
+                    .get_only_result::<i32>(db)?;
+                book.position_in_reading_order
+                    .map(
+                        |PositionInReadingOrder {
+                             position,
+                             reading_order,
+                         }|
+                         -> DonResult<()> {
+                            let reading_order_id = insert_into(schema::reading_orders::table)
+                                .values(schema::reading_orders::name.eq(&reading_order))
+                                .on_conflict(schema::reading_orders::name)
+                                .do_update()
+                                .set(schema::reading_orders::name.eq(reading_order.clone()))
+                                .returning(schema::reading_orders::id)
+                                .get_only_result::<i32>(db)?;
+                            insert_into(schema::reading_orders__books::table)
+                                .values((
+                                    schema::reading_orders__books::book_id.eq(book_id),
+                                    schema::reading_orders__books::reading_order_id
+                                        .eq(reading_order_id),
+                                    schema::reading_orders__books::position.eq(position as i32),
+                                ))
+                                .execute(db)?;
+                            Ok(())
+                        },
+                    )
+                    .transpose()?;
+                book.issues_sorted.into_iter().enumerate().try_for_each(
+                    |(position, issue)| -> DonResult<_> {
+                        let issue_path = issue
+                            .path
+                            .map(|p: PathBuf| -> DonResult<_> {
+                                Ok(p.to_str().ok_or_don_err("TODO")?.to_owned())
+                            })
+                            .transpose()?;
+                        let issue_id = insert_into(schema::issues::table)
                             .values((
-                                schema::books::title.eq(book.title),
-                                schema::books::volume_id.eq(volume_id),
-                                schema::books::volume_number
-                                    .eq(book.volume_number.map(|n| n as i32)),
-                                schema::books::path.eq(book.path.to_str().ok_or_don_err("TODO")?),
+                                schema::issues::number.eq(issue.number as i32),
+                                schema::issues::volume_id.eq(volume_id
+                                    .ok_or_don_err("Can't have issues if there are no volume")?),
+                                schema::issues::path.eq(issue_path),
                             ))
-                            .returning(schema::books::id)
+                            .returning(schema::issues::id)
                             .get_only_result::<i32>(db)?;
-                        book.issues_sorted.into_iter().enumerate().try_for_each(
-                            |(position, issue)| -> DonResult<_> {
-                                let issue_path = issue
-                                    .path
-                                    .map(|p: PathBuf| -> DonResult<_> {
-                                        Ok(p.to_str().ok_or_don_err("TODO")?.to_owned())
-                                    })
-                                    .transpose()?;
-                                let issue_id = insert_into(schema::issues::table)
-                                    .values((
-                                        schema::issues::number.eq(issue.number as i32),
-                                        schema::issues::volume_id.eq(volume_id),
-                                        schema::issues::path.eq(issue_path),
-                                    ))
-                                    .returning(schema::issues::id)
-                                    .get_only_result::<i32>(db)?;
-                                insert_into(schema::books__issues::table)
-                                    .values((
-                                        schema::books__issues::book_id.eq(book_id),
-                                        schema::books__issues::issue_id.eq(issue_id),
-                                        schema::books__issues::position.eq(position as i32),
-                                    ))
-                                    .execute(db)?;
-                                Ok(())
-                            },
-                        )?;
-                        book.additional_files_sorted
-                            .into_iter()
-                            .enumerate()
-                            .try_for_each(|(position, file)| -> DonResult<_> {
-                                let file_path = file.to_str().ok_or_don_err("TODO")?;
-                                insert_into(schema::books__additional_files::table)
-                                    .values((
-                                        schema::books__additional_files::book_id.eq(book_id),
-                                        schema::books__additional_files::file_path.eq(file_path),
-                                        schema::books__additional_files::position
-                                            .eq(position as i32),
-                                    ))
-                                    .execute(db)?;
-                                Ok(())
-                            })?;
-                    }
-                };
+                        insert_into(schema::books__issues::table)
+                            .values((
+                                schema::books__issues::book_id.eq(book_id),
+                                schema::books__issues::issue_id.eq(issue_id),
+                                schema::books__issues::position.eq(position as i32),
+                            ))
+                            .execute(db)?;
+                        Ok(())
+                    },
+                )?;
+                book.additional_files_sorted
+                    .into_iter()
+                    .enumerate()
+                    .try_for_each(|(position, file)| -> DonResult<_> {
+                        let file_path = file.to_str().ok_or_don_err("TODO")?;
+                        insert_into(schema::books__additional_files::table)
+                            .values((
+                                schema::books__additional_files::book_id.eq(book_id),
+                                schema::books__additional_files::file_path.eq(file_path),
+                                schema::books__additional_files::position.eq(position as i32),
+                            ))
+                            .execute(db)?;
+                        Ok(())
+                    })?;
                 update(schema::archives::table.find(archive_id))
                     .set(schema::archives::status.eq(ArchiveStatus::ToSearchComicVineId))
                     .execute(db)?;
@@ -131,68 +147,42 @@ pub fn perform(mode: String, dir_names: String) -> DonResult<()> {
     Ok(())
 }
 
-pub(crate) fn parse_dir(directory: &Path, mode: ParsingMode) -> DonResult<BookTypeOther> {
+pub(crate) fn parse_dir(directory: &Path, mode: ParsingMode) -> DonResult<Book> {
     let FilesAndSubdirs { files, subdirs } = files_and_subdirs_cleaned_and_sorted(directory)?;
-    match mode {
-        ParsingMode::GraphicNovel => {
-            if !subdirs.is_empty() || files.len() < 50 {
-                bail!(format!(
-                    "Parsing mode GraphicNovel should only be used \
-                    on dirs with no subdir and more than 50 pages (dir name: {})",
-                    file_name(directory)?,
-                ))
-            }
-            let parsed_data = parsable::Title::parse(directory)?;
-            Ok(BookTypeOther::GraphicNovel(GraphicNovel {
-                title: parsed_data.title,
-                path: directory.into(),
-            }))
-        }
-        ParsingMode::SingleVolume => {
-            let parsed_volume = parsable::Volume::parse(directory)?;
-            Ok(BookTypeOther::SingleVolume(SingleVolume {
-                issues_sorted: issues_from_subdirs(subdirs, &parsed_volume.volume, None)?,
-                additional_files_sorted: files,
-                volume: parsed_volume.volume,
-                volume_number: parsed_volume.volume_number,
-                title: None,
-                path: directory.into(),
-            }))
-        }
-        ParsingMode::SingleVolumeWithIssues => {
-            if subdirs.is_empty() {
-                bail!(format!(
-                    "Parsing mode SingleVolumeWithIssues should only be used \
-                    on dirs with sub-directories (dir name: {})",
-                    file_name(directory)?,
-                ))
-            }
-            let parsed_volume = parsable::VolumeWithIssues::parse(directory)?;
-            Ok(BookTypeOther::SingleVolume(SingleVolume {
-                volume: parsed_volume.volume.clone(),
-                volume_number: parsed_volume.volume_number,
-                title: None,
-                issues_sorted: issues_from_subdirs(
-                    subdirs,
-                    &parsed_volume.volume,
-                    Some((parsed_volume.first_issue, parsed_volume.last_issue)),
-                )?,
-                additional_files_sorted: files,
-                path: directory.into(),
-            }))
-        }
-        ParsingMode::SingleVolumeWithTitle => {
-            let parsed_volume = parsable::VolumeWithTitle::parse(directory)?;
-            Ok(BookTypeOther::SingleVolume(SingleVolume {
-                issues_sorted: issues_from_subdirs(subdirs, &parsed_volume.volume, None)?,
-                volume: parsed_volume.volume,
-                volume_number: parsed_volume.volume_number,
-                title: Some(parsed_volume.title),
-                additional_files_sorted: files,
-                path: directory.into(),
-            }))
-        }
+    if matches!(mode, ParsingMode::GraphicNovel) && (!subdirs.is_empty() || files.len() < 50) {
+        bail!(format!(
+            "Parsing mode GraphicNovel should only be used \
+            on dirs with no subdir and more than 50 pages (dir name: {})",
+            file_name(directory)?,
+        ))
     }
+    if matches!(mode, ParsingMode::VolumeWithIssues) && subdirs.is_empty() {
+        bail!(format!(
+            "Parsing mode SingleVolumeWithIssues should only be used \
+            on dirs with sub-directories (dir name: {})",
+            file_name(directory)?,
+        ))
+    }
+    let parsed_book = parsable::parse_book(directory, mode)?;
+    Ok(Book {
+        additional_files_sorted: {
+            if subdirs.is_empty() {
+                Vec::new()
+            } else {
+                files
+            }
+        },
+        issues_sorted: issues_from_subdirs(
+            subdirs,
+            parsed_book.volume.as_deref(),
+            parsed_book.first_and_last_issue,
+        )?,
+        volume: parsed_book.volume,
+        volume_number: parsed_book.volume_number,
+        title: parsed_book.title,
+        position_in_reading_order: parsed_book.position_in_reading_order,
+        path: directory.into(),
+    })
 }
 
 pub fn file_name(directory: &Path) -> DonResult<&str> {
@@ -205,25 +195,21 @@ pub fn file_name(directory: &Path) -> DonResult<&str> {
 
 fn issues_from_subdirs(
     subdirs: Vec<PathBuf>,
-    volume_from_parent: &str,
+    volume_from_parent: Option<&str>,
     first_and_last_issue: Option<(usize, usize)>,
 ) -> DonResult<Vec<Issue>> {
     let issues = subdirs
         .into_iter()
         .map(|subdir| {
-            let parsed_issue = parsable::Issue::parse(&subdir)?;
-            if parsed_issue
-                .volume
-                .as_ref()
-                .is_some_and(|volume| volume != volume_from_parent)
-            {
-                bail!(format!(
-                    "Issue {:#?} has a different volume than the one in the parent dir",
-                    subdir
-                ))
-            }
+            let parsed_issue = parsable::parse_issue(&subdir)?;
             Ok(Issue {
-                volume: parsed_issue.volume.unwrap_or(volume_from_parent.to_owned()),
+                volume: volume_from_parent
+                    .unwrap_or(
+                        &parsed_issue
+                            .volume
+                            .ok_or_don_err("Issue or parent should have a volume")?,
+                    )
+                    .to_owned(),
                 number: parsed_issue.number,
                 path: Some(subdir),
             })
@@ -237,11 +223,11 @@ fn issues_from_subdirs(
         (first_issue..last_issue + 1).try_for_each(|issue_number| -> DonResult<()> {
             issues_by_number
                 .remove(&issue_number)
-                .ok_or_don_err(format!("Issue {} not found", issue_number))?;
+                .ok_or_don_err(format!("Issue {issue_number} not found"))?;
             Ok(())
         })?;
         if !issues_by_number.is_empty() {
-            bail!(format!("Found extra issues: {:#?}", issues_by_number))
+            bail!(format!("Found extra issues: {issues_by_number:#?}"))
         }
     }
     Ok(issues)

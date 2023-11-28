@@ -5,22 +5,6 @@ use crate::{comics_root_path, schema::archives};
 use {diesel::prelude::*, don_error::*, std::path::PathBuf};
 
 #[derive(Debug, Serialize)]
-pub(crate) enum BookTypeOther {
-    // Issue(Issue),
-    GraphicNovel(GraphicNovel),
-    SingleVolume(SingleVolume),
-    // MultiVolume(MultiVolume),
-}
-
-// #[derive(Debug, DbEnum, Serialize)]
-// pub(crate) enum BookType {
-//     // Issue(Issue),
-//     GraphicNovel,
-//     SingleVolume,
-//     // MultiVolume(MultiVolume),
-// }
-
-#[derive(Debug, Serialize)]
 pub(crate) struct Issue {
     pub(crate) volume: String,
     pub(crate) number: usize,
@@ -34,20 +18,13 @@ pub(crate) struct GraphicNovel {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct SingleVolume {
-    pub(crate) volume: String,
+pub(crate) struct Book {
+    pub(crate) volume: Option<String>,
     pub(crate) volume_number: Option<usize>,
     pub(crate) title: Option<String>,
     pub(crate) issues_sorted: Vec<Issue>,
     pub(crate) additional_files_sorted: Vec<PathBuf>,
-    pub(crate) path: PathBuf,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct MultiVolume {
-    pub(crate) title: Option<String>,
-    pub(crate) issues_sorted: Vec<Issue>,
-    pub(crate) additional_files_sorted: Option<Vec<PathBuf>>,
+    pub(crate) position_in_reading_order: Option<PositionInReadingOrder>,
     pub(crate) path: PathBuf,
 }
 
@@ -55,6 +32,12 @@ pub(crate) struct MultiVolume {
 pub(crate) struct FilesAndSubdirs {
     pub(crate) files: Vec<PathBuf>,
     pub(crate) subdirs: Vec<PathBuf>,
+}
+
+#[derive(PartialEq, Eq, Debug, Serialize)]
+pub(crate) struct PositionInReadingOrder {
+    pub(crate) position: usize,
+    pub(crate) reading_order: String,
 }
 
 #[derive(Queryable, Selectable, Serialize)]

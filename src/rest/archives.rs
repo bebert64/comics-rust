@@ -3,7 +3,7 @@ use super::try_or_send_err;
 use crate::{
     data_recovery::{
         parse::{parse_dir, ParsingMode},
-        structs::{Archive, ArchiveStatus, BookTypeOther},
+        structs::{Archive, ArchiveStatus, Book},
     },
     schema,
 };
@@ -26,7 +26,7 @@ struct ParseQuery {
 #[derive(Serialize)]
 struct ParsedArchive {
     id: i32,
-    result: BookTypeOther,
+    result: Book,
 }
 
 lazy_static! {
