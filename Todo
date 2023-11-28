@@ -1,21 +1,14 @@
-Correct VolumeAndIssue
-    map subdirs to issue to add path
-    move additional files from subdir not in issues (if flag present in cli args) to root and 
-        add them as additional_files
+Refacto issues
+    if first and last issues are provided
+        check if numero can be found in subdirs in order
+        throw error if there are additional issues
+    create issues without path if dir contains only files
+Parse Single Issue book
 
-Migration
-    reproduce schema's manual modifications
-    db check
-        volume_number NOT NULL => type = SingleVolume
-        type = GraphicNovel => title NOT NULL
-        ...
-    add column "verified" for each archive, default false
-Write in db info from parsed dir
-Move to other folder
-    script to revert all while in test? Maybe cut/paste all is enough
+Parse issues with + ??
 
 
-
+If archive status = to parse AND dir is in Comics OK, move back to Comics
 
 
 Lib NAS
