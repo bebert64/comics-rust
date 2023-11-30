@@ -23,10 +23,7 @@ enum Commands {
         #[clap(long)]
         to: String,
     },
-    Test {
-        #[clap(long)]
-        dirs: String,
-    },
+    Test {},
 }
 
 fn main() -> DonResult<()> {
@@ -43,7 +40,7 @@ fn main() -> DonResult<()> {
     match cli.command {
         Some(Commands::Parse { mode, dir_names }) => comics::parse_existing_dir(mode, dir_names)?,
         Some(Commands::Rename { from, to }) => comics::rename(from, to)?,
-        Some(Commands::Test { dirs }) => comics::test(dirs)?,
+        Some(Commands::Test {}) => comics::test()?,
         None => (),
     }
     Ok(())

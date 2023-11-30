@@ -13,6 +13,8 @@ pub enum ParsingMode {
     VolumeWithIssues,
     VolumeWithTitle,
     VolumeWithIssuesAndTitle,
+    SingleIssue,
+    MultiVolumeWithTitle,
 }
 
 impl ParsingMode {
@@ -23,28 +25,11 @@ impl ParsingMode {
             "VolumeWithIssues" => Ok(ParsingMode::VolumeWithIssues),
             "VolumeWithTitle" => Ok(ParsingMode::VolumeWithTitle),
             "VolumeWithIssuesAndTitle" => Ok(ParsingMode::VolumeWithIssuesAndTitle),
+            "SingleIssue" => Ok(ParsingMode::SingleIssue),
+            "MultiVolumeWithTitle" => Ok(ParsingMode::MultiVolumeWithTitle),
             _ => Err(err_msg!("Invalid parsing mode")),
         }
     }
-}
-
-pub(super) struct Issue {
-    pub(super) volume: Option<String>,
-    pub(super) number: usize,
-}
-
-pub(super) fn parse_issue(directory: &Path) -> DonResult<Issue> {
-    let captures = captures(directory, "^(?<title>.*?) (- )?(?<number>[0-9]*)$")?;
-    Ok(Issue {
-        volume: {
-            let title = name_to_string_opt(&captures, "title")?;
-            match title {
-                Some(title) if &title == "Issue" => None,
-                title => title,
-            }
-        },
-        number: name_to_int(&captures, "number")?,
-    })
 }
 
 #[derive(Debug, Serialize, PartialEq, Eq)]
@@ -52,7 +37,7 @@ pub(super) struct Book {
     pub(super) volume: Option<String>,
     pub(super) volume_number: Option<usize>,
     pub(super) title: Option<String>,
-    pub(super) first_and_last_issue: Option<(usize, usize)>,
+    pub(super) issue_numbers: Vec<usize>,
     pub(super) position_in_reading_order: Option<PositionInReadingOrder>,
 }
 
@@ -66,7 +51,7 @@ pub(super) fn parse_book(directory: &Path, parsing_mode: ParsingMode) -> DonResu
                 &captures(directory, r"^(?<title>.*)$")?,
                 "title",
             )?),
-            first_and_last_issue: None,
+            issue_numbers: Vec::new(),
             position_in_reading_order: None,
         }),
         Volume => {
@@ -78,23 +63,22 @@ pub(super) fn parse_book(directory: &Path, parsing_mode: ParsingMode) -> DonResu
                 volume: Some(name_to_string(&captures, "volume")?),
                 volume_number: name_to_int_opt(&captures, "volume_number")?,
                 title: None,
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: to_reading_order(&captures, &directory)?,
             })
         }
         VolumeWithIssues => {
             let captures = captures(
                 directory,
-                r"^((?<reading_order>[0-9]+)\. )?(?<volume>.*?)( v(?<volume_number>[0-9]{2}))? (?<first_issue>[0-9]{2})-(?<last_issue>[0-9]{2})$",
+                r"^((?<reading_order>[0-9]+)\. )?(?<volume>.*?)( v(?<volume_number>[0-9]{2}))? (?<first_issue>[0-9]{2,})-(?<last_issue>[0-9]{2,})$",
             )?;
             Ok(Book {
                 volume: Some(name_to_string(&captures, "volume")?),
                 volume_number: name_to_int_opt(&captures, "volume_number")?,
                 title: None,
-                first_and_last_issue: Some((
-                    name_to_int(&captures, "first_issue")?,
-                    name_to_int(&captures, "last_issue")?,
-                )),
+                issue_numbers: (name_to_int(&captures, "first_issue")?
+                    ..name_to_int(&captures, "last_issue")? + 1)
+                    .collect(),
                 position_in_reading_order: to_reading_order(&captures, &directory)?,
             })
         }
@@ -107,23 +91,45 @@ pub(super) fn parse_book(directory: &Path, parsing_mode: ParsingMode) -> DonResu
                 volume: Some(name_to_string(&captures, "volume")?),
                 volume_number: name_to_int_opt(&captures, "volume_number")?,
                 title: Some(name_to_string(&captures, "title")?),
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: to_reading_order(&captures, &directory)?,
             })
         }
         VolumeWithIssuesAndTitle => {
             let captures = captures(
                 directory,
-                r"^((?<reading_order>[0-9]+)\. )?(?<volume>.*) (?<first_issue>[0-9]{2})-(?<last_issue>[0-9]{2}) - (?<title>.*)$",
+                r"^((?<reading_order>[0-9]+)\. )?(?<volume>.*) (?<first_issue>[0-9]{2,})-(?<last_issue>[0-9]{2,}) - (?<title>.*)$",
             )?;
             Ok(Book {
                 volume: Some(name_to_string(&captures, "volume")?),
                 volume_number: name_to_int_opt(&captures, "volume_number")?,
                 title: Some(name_to_string(&captures, "title")?),
-                first_and_last_issue: Some((
-                    name_to_int(&captures, "first_issue")?,
-                    name_to_int(&captures, "last_issue")?,
-                )),
+                issue_numbers: (name_to_int(&captures, "first_issue")?
+                    ..name_to_int(&captures, "last_issue")? + 1)
+                    .collect(),
+                position_in_reading_order: to_reading_order(&captures, &directory)?,
+            })
+        }
+        SingleIssue => {
+            let captures = captures(
+                directory,
+                r"^((?<reading_order>[0-9]+)\. )?(?<volume>.*?) (?<number>[0-9]{2,})$",
+            )?;
+            Ok(Book {
+                volume: Some(name_to_string(&captures, "volume")?),
+                volume_number: None,
+                title: None,
+                issue_numbers: vec![name_to_int(&captures, "number")?],
+                position_in_reading_order: to_reading_order(&captures, &directory)?,
+            })
+        }
+        MultiVolumeWithTitle => {
+            let captures = captures(directory, r"^((?<reading_order>[0-9]+)\. )?(?<title>.*)$")?;
+            Ok(Book {
+                volume: None,
+                volume_number: None,
+                title: Some(name_to_string(&captures, "title")?),
+                issue_numbers: vec![name_to_int(&captures, "number")?],
                 position_in_reading_order: to_reading_order(&captures, &directory)?,
             })
         }
@@ -148,9 +154,9 @@ fn name_to_string(captures: &Captures, name: &str) -> DonResult<String> {
         .to_owned())
 }
 
-fn name_to_string_opt(captures: &Captures, name: &str) -> DonResult<Option<String>> {
-    Ok(captures.name(name).map(|name| name.as_str().to_owned()))
-}
+// fn name_to_string_opt(captures: &Captures, name: &str) -> DonResult<Option<String>> {
+//     Ok(captures.name(name).map(|name| name.as_str().to_owned()))
+// }
 
 fn name_to_int(captures: &Captures, name: &str) -> DonResult<usize> {
     Ok(captures
@@ -204,7 +210,7 @@ mod tests {
                 volume: None,
                 volume_number: None,
                 title: Some("Graphic Novel".to_owned()),
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: None,
             }
         );
@@ -222,7 +228,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: None,
                 title: None,
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: None,
             }
         );
@@ -240,7 +246,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: None,
                 title: None,
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: Some(PositionInReadingOrder {
                     reading_order: "My Reading Order".to_owned(),
                     position: 1,
@@ -261,7 +267,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: Some(3),
                 title: None,
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: None,
             }
         );
@@ -279,7 +285,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: Some(3),
                 title: None,
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: Some(PositionInReadingOrder {
                     reading_order: "My Reading Order".to_owned(),
                     position: 1,
@@ -292,7 +298,7 @@ mod tests {
     fn test_volume_with_issues() {
         assert_eq!(
             parse_book(
-                Path::new(&format!("{PARENT_DIR}/My Volume v2 04-05")),
+                Path::new(&format!("{PARENT_DIR}/My Volume v2 04-06")),
                 ParsingMode::VolumeWithIssues
             )
             .unwrap(),
@@ -300,7 +306,25 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: None,
                 title: None,
-                first_and_last_issue: Some((4, 5)),
+                issue_numbers: vec![4, 5, 6],
+                position_in_reading_order: None,
+            }
+        );
+    }
+
+    #[test]
+    fn test_volume_with_3digits_issues() {
+        assert_eq!(
+            parse_book(
+                Path::new(&format!("{PARENT_DIR}/My Volume v2 104-106")),
+                ParsingMode::VolumeWithIssues
+            )
+            .unwrap(),
+            Book {
+                volume: Some("My Volume v2".to_owned()),
+                volume_number: None,
+                title: None,
+                issue_numbers: vec![104, 105, 106],
                 position_in_reading_order: None,
             }
         );
@@ -310,7 +334,7 @@ mod tests {
     fn test_volume_with_issues_and_reading_order() {
         assert_eq!(
             parse_book(
-                Path::new(&format!("{PARENT_DIR}/01. My Volume v2 04-05")),
+                Path::new(&format!("{PARENT_DIR}/01. My Volume v2 04-06")),
                 ParsingMode::VolumeWithIssues
             )
             .unwrap(),
@@ -318,7 +342,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: None,
                 title: None,
-                first_and_last_issue: Some((4, 5)),
+                issue_numbers: vec![4, 5, 6],
                 position_in_reading_order: Some(PositionInReadingOrder {
                     reading_order: "My Reading Order".to_owned(),
                     position: 1,
@@ -331,7 +355,7 @@ mod tests {
     fn test_volume_with_issues_and_volume_number() {
         assert_eq!(
             parse_book(
-                Path::new(&format!("{PARENT_DIR}/My Volume v2 v03 04-05")),
+                Path::new(&format!("{PARENT_DIR}/My Volume v2 v03 04-06")),
                 ParsingMode::VolumeWithIssues
             )
             .unwrap(),
@@ -339,7 +363,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: Some(3),
                 title: None,
-                first_and_last_issue: Some((4, 5)),
+                issue_numbers: vec![4, 5, 6],
                 position_in_reading_order: None,
             }
         );
@@ -349,7 +373,7 @@ mod tests {
     fn test_volume_with_issues_and_reading_order_and_volume_number() {
         assert_eq!(
             parse_book(
-                Path::new(&format!("{PARENT_DIR}/01. My Volume v2 v03 04-05")),
+                Path::new(&format!("{PARENT_DIR}/01. My Volume v2 v03 04-06")),
                 ParsingMode::VolumeWithIssues
             )
             .unwrap(),
@@ -357,7 +381,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: Some(3),
                 title: None,
-                first_and_last_issue: Some((4, 5)),
+                issue_numbers: vec![4, 5, 6],
                 position_in_reading_order: Some(PositionInReadingOrder {
                     reading_order: "My Reading Order".to_owned(),
                     position: 1,
@@ -378,7 +402,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: None,
                 title: Some("My Title".to_owned()),
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: None,
             }
         );
@@ -396,7 +420,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: None,
                 title: Some("My Title".to_owned()),
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: Some(PositionInReadingOrder {
                     reading_order: "My Reading Order".to_owned(),
                     position: 1,
@@ -417,7 +441,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: Some(3),
                 title: Some("My Title".to_owned()),
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: None,
             }
         );
@@ -435,7 +459,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: Some(3),
                 title: Some("My Title".to_owned()),
-                first_and_last_issue: None,
+                issue_numbers: Vec::new(),
                 position_in_reading_order: Some(PositionInReadingOrder {
                     reading_order: "My Reading Order".to_owned(),
                     position: 1,
@@ -448,7 +472,7 @@ mod tests {
     fn test_volume_with_issues_and_title() {
         assert_eq!(
             parse_book(
-                Path::new(&format!("{PARENT_DIR}/My Volume v2 04-05 - My Title")),
+                Path::new(&format!("{PARENT_DIR}/My Volume v2 04-06 - My Title")),
                 ParsingMode::VolumeWithIssuesAndTitle
             )
             .unwrap(),
@@ -456,7 +480,25 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: None,
                 title: Some("My Title".to_owned()),
-                first_and_last_issue: Some((4, 5)),
+                issue_numbers: vec![4, 5, 6],
+                position_in_reading_order: None,
+            }
+        );
+    }
+
+    #[test]
+    fn test_volume_with_3digits_issues_and_title() {
+        assert_eq!(
+            parse_book(
+                Path::new(&format!("{PARENT_DIR}/My Volume v2 104-106 - My Title")),
+                ParsingMode::VolumeWithIssuesAndTitle
+            )
+            .unwrap(),
+            Book {
+                volume: Some("My Volume v2".to_owned()),
+                volume_number: None,
+                title: Some("My Title".to_owned()),
+                issue_numbers: vec![104, 105, 106],
                 position_in_reading_order: None,
             }
         );
@@ -466,7 +508,7 @@ mod tests {
     fn test_volume_with_issues_and_title_and_reading_order() {
         assert_eq!(
             parse_book(
-                Path::new(&format!("{PARENT_DIR}/01. My Volume v2 04-05 - My Title")),
+                Path::new(&format!("{PARENT_DIR}/01. My Volume v2 04-06 - My Title")),
                 ParsingMode::VolumeWithIssuesAndTitle
             )
             .unwrap(),
@@ -474,7 +516,7 @@ mod tests {
                 volume: Some("My Volume v2".to_owned()),
                 volume_number: None,
                 title: Some("My Title".to_owned()),
-                first_and_last_issue: Some((4, 5)),
+                issue_numbers: vec![4, 5, 6],
                 position_in_reading_order: Some(PositionInReadingOrder {
                     reading_order: "My Reading Order".to_owned(),
                     position: 1,

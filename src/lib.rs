@@ -25,7 +25,7 @@ fn comics_root_path(subdir: Option<&str>) -> DonResult<PathBuf> {
     Ok(comics_root_path)
 }
 
-pub fn test(files: String) -> DonResult<()> {
+pub fn test() -> DonResult<()> {
     // println!("original: {files:?}");
     // let split = files.split("'").collect::<Vec<_>>();
     // println!("split: {split:?}");
@@ -45,26 +45,27 @@ pub fn test(files: String) -> DonResult<()> {
     // )?;
     // println!("{book:#?}");
 
-    //////   remove extension from archive  //////
-    use {diesel::prelude::*, diesel_helpers::db};
+    // //////   remove extension from archive  //////
+    // use {diesel::prelude::*, diesel_helpers::db};
 
-    let ids_and_paths = schema::archives::table
-        .select((schema::archives::id, schema::archives::path))
-        .get_results::<(i32, String)>(&mut db()?)?;
-    for (id, path) in ids_and_paths {
-        let new_path = path.strip_suffix(".zip").unwrap_or(
-            path.strip_suffix(".cbz")
-                .unwrap_or(path.strip_suffix(".cbr").unwrap_or("")),
-        );
-        if new_path != "" {
-            diesel::update(schema::archives::table.filter(schema::archives::id.eq(id)))
-                .set(schema::archives::path.eq(new_path))
-                .execute(&mut db()?)?;
-            // ()
-        } else {
-            println!("path {path:?} doesn't have a valid extension");
-        }
-    }
+    // let ids_and_paths = schema::archives::table
+    //     .select((schema::archives::id, schema::archives::path))
+    //     .get_results::<(i32, String)>(&mut db()?)?;
+    // for (id, path) in ids_and_paths {
+    //     let new_path = path.strip_suffix(".zip").unwrap_or(
+    //         path.strip_suffix(".cbz")
+    //             .unwrap_or(path.strip_suffix(".cbr").unwrap_or("")),
+    //     );
+    //     if new_path != "" {
+    //         diesel::update(schema::archives::table.filter(schema::archives::id.eq(id)))
+    //             .set(schema::archives::path.eq(new_path))
+    //             .execute(&mut db()?)?;
+    //         // ()
+    //     } else {
+    //         println!("path {path:?} doesn't have a valid extension");
+    //     }
+    // }
+    // //////////////////////////////////////////////////////////////////
 
     //////   Move all archives from Comics OK back to Comics  //////
     // use {diesel::prelude::*, diesel_helpers::db};
@@ -92,5 +93,8 @@ pub fn test(files: String) -> DonResult<()> {
     //         )?;
     //     }
     // }
+    //////////////////////////////////////////////////////////////////
+
+    println!("{}", format!("{:02}", 1));
     Ok(())
 }

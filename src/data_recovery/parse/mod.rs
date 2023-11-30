@@ -14,7 +14,6 @@ use {
     diesel_helpers::*,
     don_error::*,
     std::{
-        collections::HashMap,
         fs::{create_dir_all, read_dir, remove_dir, rename},
         path::{Path, PathBuf},
     },
@@ -156,13 +155,6 @@ pub(crate) fn parse_dir(directory: &Path, mode: ParsingMode) -> DonResult<Book> 
             file_name(directory)?,
         ))
     }
-    if matches!(mode, ParsingMode::VolumeWithIssues) && subdirs.is_empty() {
-        bail!(format!(
-            "Parsing mode SingleVolumeWithIssues should only be used \
-            on dirs with sub-directories (dir name: {})",
-            file_name(directory)?,
-        ))
-    }
     let parsed_book = parsable::parse_book(directory, mode)?;
     Ok(Book {
         additional_files_sorted: {
@@ -173,9 +165,10 @@ pub(crate) fn parse_dir(directory: &Path, mode: ParsingMode) -> DonResult<Book> 
             }
         },
         issues_sorted: issues_from_subdirs(
+            directory,
             subdirs,
             parsed_book.volume.as_deref(),
-            parsed_book.first_and_last_issue,
+            parsed_book.issue_numbers,
         )?,
         volume: parsed_book.volume,
         volume_number: parsed_book.volume_number,
@@ -194,43 +187,64 @@ pub fn file_name(directory: &Path) -> DonResult<&str> {
 }
 
 fn issues_from_subdirs(
+    parent_dir: &Path,
     subdirs: Vec<PathBuf>,
     volume_from_parent: Option<&str>,
-    first_and_last_issue: Option<(usize, usize)>,
+    issue_numbers: Vec<usize>,
 ) -> DonResult<Vec<Issue>> {
-    let issues = subdirs
-        .into_iter()
-        .map(|subdir| {
-            let parsed_issue = parsable::parse_issue(&subdir)?;
-            Ok(Issue {
-                volume: volume_from_parent
-                    .unwrap_or(
-                        &parsed_issue
-                            .volume
-                            .ok_or_don_err("Issue or parent should have a volume")?,
-                    )
-                    .to_owned(),
-                number: parsed_issue.number,
-                path: Some(subdir),
+    Ok(match (issue_numbers.len(), subdirs.len()) {
+        (0, 0) => Vec::new(),
+        (0, _) => bail!("This should work for multi volume but not yet implemented"),
+        (1, 0) => vec![Issue {
+            volume: volume_from_parent
+                .ok_or_don_err(
+                    "Impossible to create SingleIssue if \
+            no volume_from_parent is provided",
+                )?
+                .to_owned(),
+            number: *issue_numbers
+                .get(0)
+                .ok_or_don_err("Just checked non empty")?,
+            path: Some(parent_dir.into()),
+        }],
+        (_, 0) => issue_numbers
+            .into_iter()
+            .map(|issue_number| {
+                Ok(Issue {
+                    volume: volume_from_parent
+                        .ok_or_don_err(
+                            "Impossible to create issues from only issue numbers if \
+                        no volume_from_parent is provided",
+                        )?
+                        .to_owned(),
+                    number: issue_number,
+                    path: None,
+                })
             })
-        })
-        .collect::<DonResult<Vec<_>>>()?;
-    if let Some((first_issue, last_issue)) = first_and_last_issue {
-        let mut issues_by_number = issues
-            .iter()
-            .map(|issue| (issue.number, issue))
-            .collect::<HashMap<_, _>>();
-        (first_issue..last_issue + 1).try_for_each(|issue_number| -> DonResult<()> {
-            issues_by_number
-                .remove(&issue_number)
-                .ok_or_don_err(format!("Issue {issue_number} not found"))?;
-            Ok(())
-        })?;
-        if !issues_by_number.is_empty() {
-            bail!(format!("Found extra issues: {issues_by_number:#?}"))
-        }
-    }
-    Ok(issues)
+            .collect::<DonResult<Vec<_>>>()?,
+        (i, s) if i == s => subdirs
+            .into_iter()
+            .zip(issue_numbers.into_iter())
+            .map(|(subdir, issue_number)| {
+                if !file_name(&subdir)?.contains(&format!("{issue_number:02}")) {
+                    bail!(format!(
+                        "Issue number {issue_number} not found in subdir {subdir:?}"
+                    ))
+                }
+                Ok(Issue {
+                    volume: volume_from_parent
+                        .ok_or_don_err(
+                            "Impossible to create issues for a SingleVolume if \
+                            no volume_from_parent is provided",
+                        )?
+                        .to_owned(),
+                    number: issue_number,
+                    path: Some(subdir),
+                })
+            })
+            .collect::<DonResult<Vec<_>>>()?,
+        (i, s) => bail!("{i} issues and {s} subdirs found, should be equal"),
+    })
 }
 
 fn files_and_subdirs_cleaned_and_sorted(dir: &Path) -> DonResult<FilesAndSubdirs> {

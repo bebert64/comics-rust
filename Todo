@@ -1,14 +1,17 @@
-Refacto issues
-    if first and last issues are provided
-        check if numero can be found in subdirs in order
-        throw error if there are additional issues
-    create issues without path if dir contains only files
-Parse Single Issue book
+Parsing
+    Multiple Volumes will need to parse their issues completely
+    Parse issues with + ??
+    Parse Annual issues
 
-Parse issues with + ??
+Maintenance
+    If archive status = to parse AND dir is in Comics OK, move back to Comics
+    Get volumes with 0 books/issues
+    Get volumes with more than 1 book and at least one book has no reading order AND no volume_number
 
-
-If archive status = to parse AND dir is in Comics OK, move back to Comics
+Gui
+    Edit book => edit its volume and issues as well
+    Add issues
+    Create book from issues
 
 
 Lib NAS
