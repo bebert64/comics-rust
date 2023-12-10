@@ -1,6 +1,6 @@
 use diesel_derive_enum::DbEnum;
 
-use crate::{comics_root_path, schema::archives};
+use crate::{config::CONFIG, schema::archives};
 
 use {diesel::prelude::*, don_error::*, std::path::PathBuf};
 
@@ -58,7 +58,7 @@ pub(crate) enum ArchiveStatus {
 
 impl Archive {
     pub(crate) fn to_comics_dir(&self) -> DonResult<PathBuf> {
-        let comics_root = comics_root_path(Some("Comics"))?;
+        let comics_root = CONFIG.comics_dirs.as_working_dir_path()?;
         Ok(comics_root.join({
             let mut subdir = self.path.clone();
             subdir.truncate(self.path.len() - 4);

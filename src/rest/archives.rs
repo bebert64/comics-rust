@@ -5,13 +5,13 @@ use crate::{
         parse::{parse_dir, ParsingMode},
         structs::{Archive, ArchiveStatus, Book},
     },
+    db::db,
     schema,
 };
 
 use {
     actix_web::{get, http::header::ContentType, HttpRequest, HttpResponse, Responder},
     diesel::prelude::*,
-    diesel_helpers::db,
     don_error::DonResult,
     lazy_static::lazy_static,
     std::collections::HashMap,

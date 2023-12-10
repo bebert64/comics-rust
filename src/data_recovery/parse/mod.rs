@@ -4,7 +4,7 @@ pub use parsable::ParsingMode;
 
 use super::structs::*;
 
-use crate::{comics_root_path, schema};
+use crate::{config::CONFIG, db::db, schema};
 
 use {
     diesel::{
@@ -22,7 +22,7 @@ use {
 pub fn perform(mode: String, dir_names: String) -> DonResult<()> {
     let mode = ParsingMode::from(&mode)?;
     let current_dir = std::env::current_dir()?;
-    let comics_root = comics_root_path(None)?;
+    let comics_working_dir = CONFIG.comics_dirs.as_working_dir_path()?;
     let db = &mut db()?;
     dir_names[1..dir_names.len() - 1]
         .split("' '")
@@ -30,8 +30,8 @@ pub fn perform(mode: String, dir_names: String) -> DonResult<()> {
             try_or_report(|| {
                 let dir_path = current_dir.join(&dir_name.replace("'\\''", "'"));
                 let dir_relative_path = dir_path
-                    .strip_prefix(&comics_root)
-                    .map_err(|err| err_msg!("{err}. dir_path: {dir_path:?}"))?
+                    .strip_prefix(&comics_working_dir)
+                    .map_err(|err| err_msg!("Can only parse files from the working dir ({err})"))?
                     .to_str()
                     .ok_or_don_err("Path should be displayable as str")?;
                 let archive_id = schema::archives::table
@@ -131,15 +131,11 @@ pub fn perform(mode: String, dir_names: String) -> DonResult<()> {
                 update(schema::archives::table.find(archive_id))
                     .set(schema::archives::status.eq(ArchiveStatus::ToSearchComicVineId))
                     .execute(db)?;
-                let new_dir = comics_root
-                    .parent()
-                    .ok_or_don_err("TODO")?
-                    .join("Comics OK")
-                    .join(dir_relative_path);
-                if !new_dir.exists() {
-                    create_dir_all(&new_dir)?;
+                let ok_dir = CONFIG.comics_dirs.as_ok_path()?.join(dir_relative_path);
+                if !ok_dir.exists() {
+                    create_dir_all(&ok_dir)?;
                 }
-                rename(dir_path, new_dir)?;
+                rename(dir_path, ok_dir)?;
                 Ok(())
             })
         });

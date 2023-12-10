@@ -1,0 +1,17 @@
+mode = "dev"
+
+[postgres]
+	username = "rw"
+	password = "ahuAIWKWg5vol5LKc3oy"
+	ip = "2a01:e0a:83d:98c0:dea6:32ff:feaf:289e"
+	# ip="192.168.1.2"
+	# ip="88.160.246.99"
+	port = "5432"
+	name_dev = "comics_dev"
+	name_prod = "comics_prod"
+
+[comics_dirs]
+	root = "/mnt/NAS/"
+	working_dir = "Comics"
+	ok = "Comics OK"
+	zipped = "Comics Zipped"

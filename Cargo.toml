@@ -4,6 +4,7 @@
 	version = "0.1.0"
 
 [dependencies]
+	config_helpers = { path = "../libs/config_helpers" }
 	diesel_helpers = { path = "../libs/diesel_helpers" }
 	don_error = { path = "../libs/don_error" }
 	# don_error = { git = "ssh://git@github.com/bebert64/libs_rust/tree/main/don_error" }

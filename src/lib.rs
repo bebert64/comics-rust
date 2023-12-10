@@ -1,13 +1,13 @@
 #![allow(non_snake_case)]
 
-pub(crate) mod data_recovery;
+mod config;
+mod data_recovery;
+mod db;
+mod nas;
 pub mod rest;
 mod schema;
 
-use {
-    don_error::DonResult,
-    std::{env::var, path::PathBuf},
-};
+use don_error::*;
 
 pub use data_recovery::{
     parse::{perform as parse_existing_dir, ParsingMode},
@@ -16,14 +16,6 @@ pub use data_recovery::{
 
 #[macro_use]
 extern crate serde_derive;
-
-fn comics_root_path(subdir: Option<&str>) -> DonResult<PathBuf> {
-    let mut comics_root_path = PathBuf::from(var("COMICS_ROOT_PATH")?);
-    if let Some(subdir) = subdir {
-        comics_root_path.push(subdir);
-    }
-    Ok(comics_root_path)
-}
 
 pub fn test() -> DonResult<()> {
     // println!("original: {files:?}");
