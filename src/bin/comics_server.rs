@@ -14,6 +14,8 @@ async fn main() -> std::io::Result<()> {
             .service(parse)
             .service(parse_methods)
             .service(get_volumes)
+            .service(rename_volume)
+            .service(merge_volumes)
     })
     .bind(("127.0.0.2", 8080))?
     .run()

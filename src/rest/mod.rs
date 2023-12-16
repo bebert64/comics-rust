@@ -3,7 +3,7 @@ mod volumes;
 
 pub use {
     archives::{get_archives, parse, parse_methods},
-    volumes::get_volumes,
+    volumes::{get_volumes, merge_volumes, rename_volume},
 };
 
 macro_rules! try_or_send_err (
