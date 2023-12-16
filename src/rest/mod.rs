@@ -1,6 +1,10 @@
 mod archives;
+mod volumes;
 
-pub use archives::{get_archives, parse, parse_methods};
+pub use {
+    archives::{get_archives, parse, parse_methods},
+    volumes::get_volumes,
+};
 
 macro_rules! try_or_send_err (
     ($fn: block) => {

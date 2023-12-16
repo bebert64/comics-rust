@@ -10,6 +10,7 @@
 	# don_error = { git = "ssh://git@github.com/bebert64/libs_rust/tree/main/don_error" }
 
 	actix-web = "4"
+	actix-cors = "0.6"
 	clap = { version = "4", features = ["derive", "cargo"] }
 	diesel = { git = "https://github.com/Ten0/diesel", branch = "for_stockly_main", features = [
 		"postgres",
