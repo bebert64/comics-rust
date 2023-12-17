@@ -55,14 +55,3 @@ pub(crate) enum ArchiveStatus {
     ToSearchComicVineId,
     Ok,
 }
-
-impl Archive {
-    pub(crate) fn to_comics_dir(&self) -> DonResult<PathBuf> {
-        let comics_root = CONFIG.comics_dirs.as_working_dir_path()?;
-        Ok(comics_root.join({
-            let mut subdir = self.path.clone();
-            subdir.truncate(self.path.len() - 4);
-            subdir
-        }))
-    }
-}

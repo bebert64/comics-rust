@@ -1,11 +1,14 @@
 #![allow(non_snake_case)]
 
+mod archives;
+mod books;
 mod config;
 mod data_recovery;
 mod db;
 mod nas;
 pub mod rest;
 mod schema;
+mod volumes;
 
 use don_error::*;
 

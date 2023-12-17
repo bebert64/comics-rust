@@ -1,84 +1,24 @@
-use super::try_or_send_err;
+use super::{try_or_send_err, ComicsApp};
 
-use crate::{
-    data_recovery::{
-        parse::{parse_dir, ParsingMode},
-        structs::{Archive, ArchiveStatus, Book},
-    },
-    db::db,
-    schema,
-};
+use crate::archives;
 
 use {
-    actix_web::{get, http::header::ContentType, HttpRequest, HttpResponse, Responder},
-    diesel::prelude::*,
+    actix_web::{get, http::header::ContentType, App, HttpResponse, Responder},
     don_error::DonResult,
-    lazy_static::lazy_static,
-    std::collections::HashMap,
 };
 
-#[derive(Deserialize, Debug)]
-struct ParseQuery {
-    ids: Vec<i32>,
-    mode: ParsingMode,
-}
-
-#[derive(Serialize)]
-struct ParsedArchive {
-    id: i32,
-    result: Book,
-}
-
-lazy_static! {
-    pub(crate) static ref PARSE_METHODS: HashMap<&'static str, &'static str> =
-        HashMap::from([("test", "my_regex"), ("test_2", "my_other_regex")]);
+pub(super) fn add_services<T>(app: App<T>) -> App<T>
+where
+    T: ComicsApp,
+{
+    app.service(get_to_parse)
 }
 
 #[get("/api/archives")]
-async fn get_archives() -> impl Responder {
+async fn get_to_parse() -> impl Responder {
     try_or_send_err!({
-        let mut db = db()?;
-        let archives = schema::archives::table
-            .select(Archive::as_select())
-            .filter(schema::archives::status.eq(ArchiveStatus::ToParse))
-            .get_results(&mut db)?;
         Ok(HttpResponse::Ok()
             .content_type(ContentType::json())
-            .body(serde_json::to_string(&archives.iter().collect::<Vec<_>>())?))
-    })
-}
-
-#[get("/api/archives/parse_methods")]
-async fn parse_methods() -> impl Responder {
-    try_or_send_err!({
-        let body = serde_json::to_string(&PARSE_METHODS.keys().collect::<Vec<_>>())?;
-        Ok(HttpResponse::Ok()
-            .content_type(ContentType::json())
-            .body(body))
-    })
-}
-
-#[get("/api/archives/parse")]
-async fn parse(req: HttpRequest) -> impl Responder {
-    try_or_send_err!({
-        let query: ParseQuery = serde_qs::from_str(req.query_string())?;
-        let mut db = db()?;
-        let archives = schema::archives::table
-            .select(Archive::as_select())
-            .filter(schema::archives::id.eq_any(&query.ids))
-            .get_results(&mut db)?;
-        let parsed_archives = archives
-            .into_iter()
-            .map(|archive| -> DonResult<_> {
-                Ok(ParsedArchive {
-                    id: archive.id,
-                    result: parse_dir(&archive.to_comics_dir()?, query.mode)?,
-                })
-            })
-            .collect::<DonResult<Vec<_>>>()?;
-        let body = serde_json::to_string(&parsed_archives)?;
-        Ok(HttpResponse::Ok()
-            .content_type(ContentType::json())
-            .body(body))
+            .body(serde_json::to_string(&archives::get_to_parse()?)?))
     })
 }
