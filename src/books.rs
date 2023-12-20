@@ -1,6 +1,10 @@
 use crate::{db::db, schema};
 
-use {diesel::prelude::*, diesel_helpers::GetOnlyResult, don_error::*};
+use {
+    diesel::{dsl, prelude::*},
+    diesel_helpers::GetOnlyResult,
+    don_error::*,
+};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub(crate) struct BookWithIssues {
@@ -24,6 +28,15 @@ pub(crate) struct Book {
 }
 
 #[derive(Deserialize, Serialize, Debug, Queryable, Selectable)]
+#[diesel(table_name = schema::books)]
+pub(crate) struct GraphicNovel {
+    id: i32,
+    #[diesel(select_expression = schema::books::title.assume_not_null())]
+    title: String,
+    path: String,
+}
+
+#[derive(Deserialize, Serialize, Debug, Queryable, Selectable)]
 #[diesel(table_name = schema::volumes)]
 pub(crate) struct Volume {
     id: i32,
@@ -35,6 +48,8 @@ pub(crate) struct Volume {
 pub(crate) struct Issue {
     id: i32,
     volume_id: i32,
+    #[diesel(select_expression = schema::volumes::name)]
+    volume_name: String,
     number: i32,
     path: Option<String>,
 }
@@ -46,6 +61,18 @@ pub(crate) fn get_all() -> DonResult<Vec<Book>> {
         .get_results(&mut db()?)?)
 }
 
+pub(crate) fn get_graphic_novels() -> DonResult<Vec<GraphicNovel>> {
+    Ok(schema::books::table
+        .left_join(schema::volumes::table)
+        .filter(schema::books::volume_id.is_null())
+        .filter(dsl::not(dsl::exists(
+            schema::books__issues::table
+                .filter(schema::books__issues::book_id.eq(schema::books::id)),
+        )))
+        .select(GraphicNovel::as_select())
+        .get_results(&mut db()?)?)
+}
+
 pub(crate) fn get(id: i32) -> DonResult<BookWithIssues> {
     let book = schema::books::table
         .find(id)
@@ -54,6 +81,7 @@ pub(crate) fn get(id: i32) -> DonResult<BookWithIssues> {
         .get_only_result(&mut db()?)?;
     let issues = schema::issues::table
         .inner_join(schema::books__issues::table)
+        .inner_join(schema::volumes::table)
         .filter(schema::books__issues::book_id.eq(id))
         .select(Issue::as_select())
         .get_results(&mut db()?)?;

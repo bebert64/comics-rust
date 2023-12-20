@@ -1,8 +1,8 @@
 use diesel_derive_enum::DbEnum;
 
-use crate::{config::CONFIG, schema::archives};
+use crate::schema::archives;
 
-use {diesel::prelude::*, don_error::*, std::path::PathBuf};
+use {diesel::prelude::*, std::path::PathBuf};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct Issue {

@@ -11,7 +11,9 @@ pub(super) fn add_services<T>(app: App<T>) -> App<T>
 where
     T: ComicsApp,
 {
-    app.service(get_all).service(get_by_id)
+    app.service(get_all)
+        .service(get_by_id)
+        .service(get_graphic_novels)
 }
 
 #[get("/api/books")]
@@ -21,6 +23,16 @@ async fn get_all() -> impl Responder {
         Ok(HttpResponse::Ok()
             .content_type(ContentType::json())
             .body(serde_json::to_string(&books::get_all()?)?))
+    })
+}
+
+#[get("/api/graphic_novels")]
+async fn get_graphic_novels() -> impl Responder {
+    try_or_send_err!({
+        println!("Getting graphic novels");
+        Ok(HttpResponse::Ok()
+            .content_type(ContentType::json())
+            .body(serde_json::to_string(&books::get_graphic_novels()?)?))
     })
 }
 
