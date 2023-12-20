@@ -18,7 +18,7 @@ pub use data_recovery::{
 };
 
 #[macro_use]
-extern crate serde_derive;
+extern crate serde;
 
 pub fn test() -> DonResult<()> {
     // println!("original: {files:?}");
