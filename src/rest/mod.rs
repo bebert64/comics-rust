@@ -55,4 +55,18 @@ macro_rules! try_or_send_err (
     }
 );
 
-use try_or_send_err;
+macro_rules! async_try_or_set_err(
+    ($fn: block) => {
+        match (async  {
+            $fn
+        }).await {
+            Ok(responder) => responder,
+            Err(err) => {
+                err.report();
+                HttpResponse::InternalServerError().body(format!("{err:?}"))
+            }
+        }
+    }
+);
+
+use {async_try_or_set_err, try_or_send_err};

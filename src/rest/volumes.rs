@@ -1,9 +1,12 @@
-use super::{try_or_send_err, ComicsApp};
+use super::{async_try_or_set_err, try_or_send_err, ComicsApp};
 
-use crate::volumes::{self, Volume};
+use crate::{
+    comic_vine_sdk,
+    volumes::{self, Volume},
+};
 
 use {
-    actix_web::{get, http::header::ContentType, post, App, HttpResponse, Responder},
+    actix_web::{get, http::header::ContentType, post, web, App, HttpResponse, Responder},
     don_error::*,
 };
 
@@ -11,7 +14,10 @@ pub(super) fn add_services<T>(app: App<T>) -> App<T>
 where
     T: ComicsApp,
 {
-    app.service(get_all).service(rename).service(merge)
+    app.service(get_all)
+        .service(rename)
+        .service(merge)
+        .service(search)
 }
 
 #[get("/api/volumes")]
@@ -41,5 +47,16 @@ async fn merge(request_body: String) -> impl Responder {
         println!("Merging volumes {ids:?}");
         volumes::merge(ids)?;
         Ok(HttpResponse::Ok().finish())
+    })
+}
+
+#[get("/api/volumes/search/{query}")]
+async fn search(path: web::Path<String>) -> impl Responder {
+    async_try_or_set_err!({
+        println!("Searching volumes");
+        let query: String = path.into_inner();
+        <DonResult<_>>::Ok(HttpResponse::Ok().content_type(ContentType::json()).body(
+            serde_json::to_string(&comic_vine_sdk::volumes::search(&query).await?)?,
+        ))
     })
 }

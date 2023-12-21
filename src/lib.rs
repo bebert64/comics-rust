@@ -2,6 +2,7 @@
 
 mod archives;
 mod books;
+mod comic_vine_sdk;
 mod config;
 mod data_recovery;
 mod db;

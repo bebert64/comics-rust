@@ -15,3 +15,7 @@ mode = "dev"
 	working_dir = "Comics"
 	ok = "Comics OK"
 	zipped = "Comics Zipped"
+
+[comic_vine]
+	api_key = "227a2e97d111639648ed7187bc54f0970a065444"
+	url_root = "https://comicvine.gamespot.com/api"
