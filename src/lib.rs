@@ -91,6 +91,13 @@ pub fn test() -> DonResult<()> {
     // }
     //////////////////////////////////////////////////////////////////
 
-    println!("{}", format!("{:02}", 1));
+    use {crate::db::db, diesel::prelude::*};
+    println!("starting");
+    let db = &mut db()?;
+    println!("db : {:?}", db.begin_test_transaction());
+    // let test = schema::archives::table
+    //     .select(schema::archives::id)
+    //     .get_results::<i32>(&mut db()?)?;
+    // println!("test: {:#?}", test.len());
     Ok(())
 }
