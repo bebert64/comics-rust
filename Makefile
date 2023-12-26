@@ -1,1 +1,1 @@
-include ../libs/postgres/Makefile
+include ../../libs/postgres/Makefile
