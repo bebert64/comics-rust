@@ -9,7 +9,8 @@
 	don_error = { path = "../../libs/don_error" }
 	# don_error = { git = "ssh://git@github.com/bebert64/libs_rust/tree/main/don_error" }
 
-	actix-web = "4"
+	actix-web = { version = "4", features = ["openssl"] }
+	openssl = { version = "0.10", features = ["v110"] }
 	actix-cors = "0.6"
 	clap = { version = "4", features = ["derive", "cargo"] }
 	diesel = { git = "https://github.com/Ten0/diesel", branch = "for_stockly_main", features = [

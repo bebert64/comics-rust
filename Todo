@@ -8,12 +8,6 @@ Maintenance
     Get volumes with 0 books/issues
     Get volumes with more than 1 book and at least one book has no reading order AND no volume_number
 
-Gui
-    Edit book => edit its volume and issues as well
-    Add issues
-    Create book from issues
-
-
 Lib NAS
     is mounted ?
     mount

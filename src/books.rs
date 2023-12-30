@@ -13,6 +13,9 @@ pub(crate) struct BookWithIssues {
     volume: Option<Volume>,
     volume_number: Option<i32>,
     path: String,
+    comic_vine_id: Option<i32>,
+    url_thumbnail: Option<String>,
+    url_cover: Option<String>,
     issues: Vec<Issue>,
 }
 
@@ -25,6 +28,9 @@ pub(crate) struct Book {
     volume: Option<Volume>,
     volume_number: Option<i32>,
     path: String,
+    comic_vine_id: Option<i32>,
+    url_thumbnail: Option<String>,
+    url_cover: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Queryable, Selectable)]
@@ -34,6 +40,9 @@ pub(crate) struct GraphicNovel {
     #[diesel(select_expression = schema::books::title.assume_not_null())]
     title: String,
     path: String,
+    comic_vine_id: Option<i32>,
+    url_thumbnail: Option<String>,
+    url_cover: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Queryable, Selectable)]
@@ -52,6 +61,9 @@ pub(crate) struct Issue {
     volume_name: String,
     number: i32,
     path: Option<String>,
+    comic_vine_id: Option<i32>,
+    url_thumbnail: Option<String>,
+    url_cover: Option<String>,
 }
 
 pub(crate) fn get_all() -> DonResult<Vec<Book>> {
@@ -91,6 +103,9 @@ pub(crate) fn get(id: i32) -> DonResult<BookWithIssues> {
         volume: book.volume,
         volume_number: book.volume_number,
         path: book.path,
+        comic_vine_id: book.comic_vine_id,
+        url_cover: book.url_cover,
+        url_thumbnail: book.url_thumbnail,
         issues,
     })
 }

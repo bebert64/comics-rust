@@ -25,6 +25,9 @@ diesel::table! {
         /// Number of the TPB inside the volume. Ex: Batman v2 v03 => 3
         volume_number -> Nullable<Int4>,
         path -> Text,
+        comic_vine_id -> Nullable<Int4>,
+        url_thumbnail -> Nullable<Varchar>,
+        url_cover -> Nullable<Varchar>,
     }
 }
 
@@ -52,6 +55,9 @@ diesel::table! {
         volume_id -> Int4,
         number -> Int4,
         path -> Nullable<Text>,
+        comic_vine_id -> Nullable<Int4>,
+        url_thumbnail -> Nullable<Varchar>,
+        url_cover -> Nullable<Varchar>,
     }
 }
 
@@ -59,6 +65,9 @@ diesel::table! {
     reading_orders (id) {
         id -> Int4,
         name -> Nullable<Text>,
+        comic_vine_id -> Nullable<Int4>,
+        url_thumbnail -> Nullable<Varchar>,
+        url_cover -> Nullable<Varchar>,
     }
 }
 
@@ -75,6 +84,9 @@ diesel::table! {
     volumes (id) {
         id -> Int4,
         name -> Text,
+        comic_vine_id -> Nullable<Int4>,
+        url_thumbnail -> Nullable<Varchar>,
+        url_cover -> Nullable<Varchar>,
     }
 }
 

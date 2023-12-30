@@ -91,13 +91,8 @@ pub fn test() -> DonResult<()> {
     // }
     //////////////////////////////////////////////////////////////////
 
-    use {crate::db::db, diesel::prelude::*};
-    println!("starting");
-    let db = &mut db()?;
-    println!("db : {:?}", db.begin_test_transaction());
-    // let test = schema::archives::table
-    //     .select(schema::archives::id)
-    //     .get_results::<i32>(&mut db()?)?;
-    // println!("test: {:#?}", test.len());
+    use comic_vine_sdk::url;
+    let url = url("volumes", &[("query", "batman")])?;
+    println!("{}", url.as_str());
     Ok(())
 }

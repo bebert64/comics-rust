@@ -14,7 +14,7 @@ where
     app.service(get_to_parse)
 }
 
-#[get("/api/archives")]
+#[get("/archives")]
 async fn get_to_parse() -> impl Responder {
     try_or_send_err!({
         Ok(HttpResponse::Ok()
