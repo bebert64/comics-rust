@@ -6,14 +6,15 @@ use {
 };
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct Volume {
+pub(crate) struct Book {
     pub(crate) id: i32,
-    pub(crate) name: String,
+    #[serde(rename(deserialize = "name"))]
+    pub(crate) title: String,
     #[serde(default)]
     pub(crate) description: Option<String>,
     pub(crate) image: ImageUrls,
 }
 
-pub(crate) async fn search(volume: &str) -> DonResult<Vec<Volume>> {
-    Ok(get::<Vec<Volume>>("volumes", &[("filter", &format!("name:{volume}"))]).await?)
+pub(crate) async fn search(book: &str) -> DonResult<Vec<Book>> {
+    Ok(get::<Vec<Book>>("books", &[("filter", &format!("name:{book}"))]).await?)
 }

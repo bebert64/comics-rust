@@ -1,10 +1,11 @@
+pub(crate) mod books;
 pub(crate) mod volumes;
 
 use crate::config::CONFIG;
 
 use {
     don_error::*,
-    reqwest::{Client, ClientBuilder},
+    reqwest::{Client, ClientBuilder, Url},
     serde::{de::DeserializeOwned, Deserialize, Serialize},
 };
 
@@ -20,50 +21,40 @@ pub(crate) struct ImageUrls {
     pub(crate) original_url: String,
 }
 
+lazy_static::lazy_static! {
+    static ref COMMON_QUERY_PARAMS: [(&'static str, &'static str);2] =
+        [
+            ("api_key", &CONFIG.comic_vine.api_key),
+            ("format", "json"),
+        ];
+}
+
 fn client() -> DonResult<Client> {
     Ok(ClientBuilder::new().user_agent("RustComicApp").build()?)
 }
 
-async fn get<T>(endpoint: &str, query: &str) -> DonResult<T>
+pub(crate) fn url(endpoint: &str, query_params: &[(&str, &str)]) -> DonResult<Url> {
+    let mut url = Url::parse(&CONFIG.comic_vine.url_root)?.join(endpoint)?;
+    COMMON_QUERY_PARAMS
+        .iter()
+        .chain(query_params)
+        .for_each(|(key, value)| {
+            url.query_pairs_mut().append_pair(key, value);
+        });
+    Ok(url)
+}
+
+async fn get<T>(endpoint: &str, query_params: &[(&str, &str)]) -> DonResult<T>
 where
     T: DeserializeOwned,
 {
-    let temp = client()?
-        .get(&format!(
-            "{}/{endpoint}/?api_key={}&format=json&{query}",
-            CONFIG.comic_vine.url_root, CONFIG.comic_vine.api_key
-        ))
+    let my_url = url(endpoint, query_params)?;
+    println!("{my_url}");
+    Ok(client()?
+        .get(url(endpoint, query_params)?)
         .send()
-        .await?;
-    let test = temp.json::<Response<Vec<serde_json::Value>>>().await?;
-    println!(
-        "{:#?}",
-        test.results
-            .iter()
-            .map(|res| res.get("description"))
-            .collect::<Vec<_>>()
-    );
-    let temp = client()?
-        .get(&format!(
-            "{}/{endpoint}/?api_key={}&format=json&{query}",
-            CONFIG.comic_vine.url_root, CONFIG.comic_vine.api_key
-        ))
-        .send()
-        .await?;
-    println!("{temp:#?}");
-    Ok(temp.json::<Response<T>>().await?.results)
-    // Ok(client()?
-    //     .get(&format!(
-    //         "{}/{endpoint}/?api_key={}&format=json&{query}",
-    //         CONFIG.comic_vine.url_root, CONFIG.comic_vine.api_key
-    //     ))
-    //     .send()
-    //     .await?
-    //     .json::<Response<T>>()
-    //     .await?
-    //     .results)
-}
-
-async fn get_thumbnail(url: &str) -> DonResult<Vec<u8>> {
-    Ok(client()?.get(url).send().await?.bytes().await?.to_vec())
+        .await?
+        .json::<Response<T>>()
+        .await?
+        .results)
 }
